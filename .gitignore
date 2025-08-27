@@ -34,4 +34,42 @@ _testmain.go
 /output
 *.local.yml
 dumped_hertz_remote_config.json
+
+# Go specific
+*.mod.sum.bak
+vendor/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+tmp/
+build/
+dist/
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
 		  

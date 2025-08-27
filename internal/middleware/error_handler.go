@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"time"
-	"user-service/pkg/errors"
+	"kube/pkg/errors"
 
 	"github.com/cloudwego/hertz/pkg/app"
 )

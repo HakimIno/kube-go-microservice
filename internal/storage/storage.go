@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"user-service/internal/config"
+	"kube/internal/config"
 )
 
 type Client struct {

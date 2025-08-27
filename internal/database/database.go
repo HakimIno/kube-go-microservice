@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"user-service/internal/config"
+	"kube/internal/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

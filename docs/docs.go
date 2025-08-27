@@ -11,7 +11,7 @@ const docTemplate = `{
         "title": "{{.Title}}",
         "contact": {
             "name": "API Support",
-            "url": "https://github.com/your-username/user-service",
+            "url": "https://github.com/your-username/kube",
             "email": "support@example.com"
         },
         "license": {
@@ -324,7 +324,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8888",
+	Host:             "localhost:8081",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "User Service API",

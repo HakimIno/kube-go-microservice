@@ -37,7 +37,7 @@ definitions:
       last_name:
         type: string
     type: object
-host: localhost:8888
+host: localhost:8081
 info:
   contact:
     email: support@example.com

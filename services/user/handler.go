@@ -1,20 +1,23 @@
 package user
 
 import (
-	"strconv"
-
-	"user-service/pkg/errors"
-	"user-service/pkg/models"
+	"kube/pkg/errors"
+	"kube/pkg/handlers"
+	"kube/pkg/models"
 
 	"github.com/cloudwego/hertz/pkg/app"
 )
 
 type Handler struct {
+	*handlers.BaseHandler
 	service *Service
 }
 
 func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+	return &Handler{
+		BaseHandler: handlers.NewBaseHandler(),
+		service:     service,
+	}
 }
 
 // Register godoc
@@ -30,7 +33,7 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) Register(c *app.RequestContext) {
 	var req models.UserCreateRequest
 	if err := c.BindJSON(&req); err != nil {
-		errors.SendValidationError(c, "Invalid request data format")
+		h.SendValidationError(c, "Invalid request data format")
 		return
 	}
 
@@ -40,7 +43,7 @@ func (h *Handler) Register(c *app.RequestContext) {
 		return
 	}
 
-	errors.SendSuccess(c, 201, user, "User created successfully")
+	h.SendSuccess(c, 201, user, "User created successfully")
 }
 
 // Login godoc
@@ -57,7 +60,7 @@ func (h *Handler) Register(c *app.RequestContext) {
 func (h *Handler) Login(c *app.RequestContext) {
 	var req models.UserLoginRequest
 	if err := c.BindJSON(&req); err != nil {
-		errors.SendValidationError(c, "Invalid request data format")
+		h.SendValidationError(c, "Invalid request data format")
 		return
 	}
 
@@ -71,7 +74,7 @@ func (h *Handler) Login(c *app.RequestContext) {
 		"user":  user,
 		"token": token,
 	}
-	errors.SendSuccess(c, 200, response, "Login successful")
+	h.SendSuccess(c, 200, response, "Login successful")
 }
 
 // GetUser godoc
@@ -86,10 +89,9 @@ func (h *Handler) Login(c *app.RequestContext) {
 // @Failure 404 {object} map[string]interface{} "User not found"
 // @Router /api/v1/users/{id} [get]
 func (h *Handler) GetUser(c *app.RequestContext) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := h.GetParamUint(c, "id")
 	if err != nil {
-		errors.SendValidationError(c, "Invalid user ID format")
+		h.SendValidationError(c, "Invalid user ID format")
 		return
 	}
 
@@ -99,7 +101,7 @@ func (h *Handler) GetUser(c *app.RequestContext) {
 		return
 	}
 
-	errors.SendSuccess(c, 200, user, "User retrieved successfully")
+	h.SendSuccess(c, 200, user, "User retrieved successfully")
 }
 
 // UpdateUser godoc
@@ -115,16 +117,15 @@ func (h *Handler) GetUser(c *app.RequestContext) {
 // @Failure 404 {object} map[string]interface{} "User not found"
 // @Router /api/v1/users/{id} [put]
 func (h *Handler) UpdateUser(c *app.RequestContext) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := h.GetParamUint(c, "id")
 	if err != nil {
-		errors.SendValidationError(c, "Invalid user ID format")
+		h.SendValidationError(c, "Invalid user ID format")
 		return
 	}
 
 	var req models.UserUpdateRequest
 	if err := c.BindJSON(&req); err != nil {
-		errors.SendValidationError(c, "Invalid request data format")
+		h.SendValidationError(c, "Invalid request data format")
 		return
 	}
 
@@ -134,7 +135,7 @@ func (h *Handler) UpdateUser(c *app.RequestContext) {
 		return
 	}
 
-	errors.SendSuccess(c, 200, user, "User updated successfully")
+	h.SendSuccess(c, 200, user, "User updated successfully")
 }
 
 // DeleteUser godoc
@@ -148,10 +149,9 @@ func (h *Handler) UpdateUser(c *app.RequestContext) {
 // @Failure 400 {object} map[string]interface{} "Invalid user ID or deletion failed"
 // @Router /api/v1/users/{id} [delete]
 func (h *Handler) DeleteUser(c *app.RequestContext) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := h.GetParamUint(c, "id")
 	if err != nil {
-		errors.SendValidationError(c, "Invalid user ID format")
+		h.SendValidationError(c, "Invalid user ID format")
 		return
 	}
 
@@ -160,5 +160,5 @@ func (h *Handler) DeleteUser(c *app.RequestContext) {
 		return
 	}
 
-	errors.SendSuccess(c, 200, nil, "User deleted successfully")
+	h.SendSuccess(c, 200, nil, "User deleted successfully")
 }

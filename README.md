@@ -41,14 +41,32 @@ docker-compose ps
 
 ### Running Locally
 
+#### 1. Start Dependencies
 ```bash
 # Start PostgreSQL & Redis
 docker-compose -f deployments/docker-compose/docker-compose.yml up postgres redis -d
+```
 
-# Run User Service
+#### 2. Build Services
+```bash
+# Build all services
+./build.sh
+
+# Or build specific service
+./scripts/build-service.sh user-service
+
+# Binaries will be created in output/bin/
+```
+
+#### 3. Run Services
+```bash
+# Option 1: Run with script (includes environment variables)
 ./scripts/run-user-service.sh
 
-# Or run manually
+# Option 2: Run built binary
+./output/bin/user-service
+
+# Option 3: Run directly with go run
 export DB_HOST=localhost
 export DB_PORT=5432
 export DB_USER=postgres
@@ -157,6 +175,26 @@ curl -X POST http://localhost:8081/api/v1/users/login \
 
 ## 🚀 Development
 
+### Build Commands
+
+```bash
+# Build all services
+./build.sh
+
+# Build specific service
+./scripts/build-service.sh <service-name>
+
+# Build with custom output path
+go build -o output/bin/<service-name> ./cmd/<service-name>
+
+# Build for different architectures
+GOOS=linux GOARCH=amd64 go build -o output/bin/<service-name>-linux ./cmd/<service-name>
+```
+
+**Binary Locations:**
+- All services: `output/bin/`
+- Individual builds: Current directory (unless specified with `-o`)
+
 ### Adding New Service
 
 1. สร้างโฟลเดอร์ใน `cmd/` และ `services/`
@@ -164,6 +202,7 @@ curl -X POST http://localhost:8081/api/v1/users/login \
 3. สร้าง business logic ใน `services/[service-name]/`
 4. เพิ่ม Dockerfile ใน `deployments/docker/`
 5. อัปเดต docker-compose.yml
+6. Build script จะ detect และ build service ใหม่โดยอัตโนมัติ
 
 ### Code Style
 
