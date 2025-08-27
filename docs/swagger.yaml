@@ -3,28 +3,232 @@ definitions:
   models.ChangePasswordRequest:
     properties:
       current_password:
+        example: oldpassword123
         type: string
       new_password:
+        example: newpassword123
         minLength: 6
         type: string
     required:
     - current_password
     - new_password
     type: object
+  models.ChangePasswordResponse:
+    properties:
+      data:
+        example: "null"
+        type: string
+      message:
+        example: Password changed successfully
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/change-password
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.DeleteUserResponse:
+    properties:
+      data:
+        example: "null"
+        type: string
+      message:
+        example: User deleted successfully
+        type: string
+      method:
+        example: DELETE
+        type: string
+      path:
+        example: /api/v1/users/1
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            example: USER_NOT_FOUND
+            type: string
+          details:
+            example: User with ID 999 not found
+            type: string
+          message:
+            example: User not found
+            type: string
+          request_id:
+            example: 59744195-9e8d-4e07-b17e-39dac2ae2b48
+            type: string
+          timestamp:
+            example: "2025-08-27T08:15:03.832523143Z"
+            type: string
+        type: object
+      method:
+        example: GET
+        type: string
+      path:
+        example: /api/v1/users/999
+        type: string
+      success:
+        example: false
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.GetUserResponse:
+    properties:
+      data:
+        properties:
+          user:
+            $ref: '#/definitions/models.UserResponse'
+        type: object
+      message:
+        example: User retrieved successfully
+        type: string
+      method:
+        example: GET
+        type: string
+      path:
+        example: /api/v1/users/1
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.LoginResponse:
+    properties:
+      data:
+        properties:
+          token:
+            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            type: string
+          user:
+            $ref: '#/definitions/models.UserResponse'
+        type: object
+      message:
+        example: Login successful
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/login
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.RefreshTokenResponse:
+    properties:
+      data:
+        properties:
+          token:
+            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            type: string
+          user:
+            $ref: '#/definitions/models.UserResponse'
+        type: object
+      message:
+        example: Token refreshed successfully
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/refresh
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.RegisterResponse:
+    properties:
+      data:
+        properties:
+          user:
+            $ref: '#/definitions/models.UserResponse'
+        type: object
+      message:
+        example: User created successfully
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/register
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.UpdateUserResponse:
+    properties:
+      data:
+        properties:
+          user:
+            $ref: '#/definitions/models.UserResponse'
+        type: object
+      message:
+        example: User updated successfully
+        type: string
+      method:
+        example: PUT
+        type: string
+      path:
+        example: /api/v1/users/1
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
   models.UserCreateRequest:
     properties:
       email:
+        example: john@example.com
         type: string
       first_name:
+        example: John
         type: string
       last_name:
+        example: Doe
         type: string
       password:
+        example: password123
         minLength: 6
         type: string
       role:
+        example: user
         type: string
       username:
+        example: johndoe
         type: string
     required:
     - email
@@ -34,20 +238,91 @@ definitions:
   models.UserLoginRequest:
     properties:
       email:
+        example: john@example.com
         type: string
       password:
+        example: password123
         type: string
     required:
     - email
     - password
     type: object
+  models.UserResponse:
+    properties:
+      avatar:
+        example: https://example.com/avatar.jpg
+        type: string
+      created_at:
+        example: "2025-08-27T08:15:03.003428Z"
+        type: string
+      email:
+        example: john@example.com
+        type: string
+      first_name:
+        example: John
+        type: string
+      id:
+        example: 1
+        type: integer
+      is_active:
+        example: true
+        type: boolean
+      last_name:
+        example: Doe
+        type: string
+      role:
+        example: user
+        type: string
+      updated_at:
+        example: "2025-08-27T08:15:03.003428Z"
+        type: string
+      username:
+        example: johndoe
+        type: string
+    type: object
   models.UserUpdateRequest:
     properties:
       avatar:
+        example: https://example.com/avatar.jpg
         type: string
       first_name:
+        example: John
         type: string
       last_name:
+        example: Doe
+        type: string
+    type: object
+  models.ValidationErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            example: VALIDATION_FAILED
+            type: string
+          details:
+            example: Invalid request data format
+            type: string
+          message:
+            example: Validation failed
+            type: string
+          request_id:
+            example: 59744195-9e8d-4e07-b17e-39dac2ae2b48
+            type: string
+          timestamp:
+            example: "2025-08-27T08:15:03.832523143Z"
+            type: string
+        type: object
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/register
+        type: string
+      success:
+        example: false
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
         type: string
     type: object
 host: localhost:8081
@@ -71,6 +346,7 @@ paths:
       parameters:
       - description: User ID
         in: path
+        minimum: 1
         name: id
         required: true
         type: integer
@@ -80,13 +356,15 @@ paths:
         "200":
           description: User deleted successfully
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.DeleteUserResponse'
         "400":
-          description: Invalid user ID or deletion failed
+          description: Invalid user ID
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Delete user
       tags:
       - users
@@ -97,6 +375,7 @@ paths:
       parameters:
       - description: User ID
         in: path
+        minimum: 1
         name: id
         required: true
         type: integer
@@ -106,18 +385,15 @@ paths:
         "200":
           description: User information
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.GetUserResponse'
         "400":
           description: Invalid user ID
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ValidationErrorResponse'
         "404":
           description: User not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Get user by ID
       tags:
       - users
@@ -128,6 +404,7 @@ paths:
       parameters:
       - description: User ID
         in: path
+        minimum: 1
         name: id
         required: true
         type: integer
@@ -143,18 +420,15 @@ paths:
         "200":
           description: User updated successfully
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.UpdateUserResponse'
         "400":
           description: Invalid request data or user ID
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ValidationErrorResponse'
         "404":
           description: User not found
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Update user information
       tags:
       - users
@@ -176,18 +450,15 @@ paths:
         "200":
           description: Password changed successfully
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ChangePasswordResponse'
         "400":
           description: Invalid request data
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ValidationErrorResponse'
         "401":
           description: Unauthorized or invalid current password
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Change user password
@@ -211,18 +482,19 @@ paths:
         "200":
           description: Login successful
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.LoginResponse'
         "400":
           description: Invalid request data
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ValidationErrorResponse'
         "401":
-          description: Invalid credentials or account deactivated
+          description: Invalid credentials
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Account deactivated
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       summary: User login
       tags:
       - users
@@ -237,13 +509,11 @@ paths:
         "200":
           description: Current user information
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.GetUserResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get current user information
@@ -260,13 +530,11 @@ paths:
         "200":
           description: Token refreshed successfully
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.RefreshTokenResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Refresh authentication token
@@ -290,13 +558,15 @@ paths:
         "201":
           description: User created successfully
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.RegisterResponse'
         "400":
-          description: Invalid request data or user already exists
+          description: Invalid request data
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Register a new user
       tags:
       - users

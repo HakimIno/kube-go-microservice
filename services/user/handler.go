@@ -27,8 +27,9 @@ func NewHandler(service *Service) *Handler {
 // @Accept json
 // @Produce json
 // @Param user body models.UserCreateRequest true "User registration data"
-// @Success 201 {object} map[string]interface{} "User created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request data or user already exists"
+// @Success 201 {object} models.RegisterResponse "User created successfully"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 409 {object} models.ErrorResponse "User already exists"
 // @Router /api/v1/users/register [post]
 func (h *Handler) Register(c *app.RequestContext) {
 	var req models.UserCreateRequest
@@ -53,9 +54,10 @@ func (h *Handler) Register(c *app.RequestContext) {
 // @Accept json
 // @Produce json
 // @Param credentials body models.UserLoginRequest true "Login credentials"
-// @Success 200 {object} map[string]interface{} "Login successful"
-// @Failure 401 {object} map[string]interface{} "Invalid credentials or account deactivated"
-// @Failure 400 {object} map[string]interface{} "Invalid request data"
+// @Success 200 {object} models.LoginResponse "Login successful"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Invalid credentials"
+// @Failure 403 {object} models.ErrorResponse "Account deactivated"
 // @Router /api/v1/users/login [post]
 func (h *Handler) Login(c *app.RequestContext) {
 	var req models.UserLoginRequest
@@ -84,8 +86,8 @@ func (h *Handler) Login(c *app.RequestContext) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} map[string]interface{} "Token refreshed successfully"
-// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Success 200 {object} models.RefreshTokenResponse "Token refreshed successfully"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
 // @Router /api/v1/users/refresh [post]
 func (h *Handler) RefreshToken(c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
@@ -114,8 +116,8 @@ func (h *Handler) RefreshToken(c *app.RequestContext) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} map[string]interface{} "Current user information"
-// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Success 200 {object} models.GetUserResponse "Current user information"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
 // @Router /api/v1/users/me [get]
 func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
@@ -141,9 +143,9 @@ func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 // @Produce json
 // @Security BearerAuth
 // @Param password body models.ChangePasswordRequest true "Password change data"
-// @Success 200 {object} map[string]interface{} "Password changed successfully"
-// @Failure 401 {object} map[string]interface{} "Unauthorized or invalid current password"
-// @Failure 400 {object} map[string]interface{} "Invalid request data"
+// @Success 200 {object} models.ChangePasswordResponse "Password changed successfully"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized or invalid current password"
 // @Router /api/v1/users/change-password [post]
 func (h *Handler) ChangePassword(c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
@@ -172,10 +174,10 @@ func (h *Handler) ChangePassword(c *app.RequestContext) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
-// @Success 200 {object} map[string]interface{} "User information"
-// @Failure 400 {object} map[string]interface{} "Invalid user ID"
-// @Failure 404 {object} map[string]interface{} "User not found"
+// @Param id path int true "User ID" minimum(1)
+// @Success 200 {object} models.GetUserResponse "User information"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid user ID"
+// @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [get]
 func (h *Handler) GetUser(c *app.RequestContext) {
 	id, err := h.GetParamUint(c, "id")
@@ -199,11 +201,11 @@ func (h *Handler) GetUser(c *app.RequestContext) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
+// @Param id path int true "User ID" minimum(1)
 // @Param user body models.UserUpdateRequest true "User update data"
-// @Success 200 {object} map[string]interface{} "User updated successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request data or user ID"
-// @Failure 404 {object} map[string]interface{} "User not found"
+// @Success 200 {object} models.UpdateUserResponse "User updated successfully"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data or user ID"
+// @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [put]
 func (h *Handler) UpdateUser(c *app.RequestContext) {
 	id, err := h.GetParamUint(c, "id")
@@ -233,9 +235,10 @@ func (h *Handler) UpdateUser(c *app.RequestContext) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
-// @Success 200 {object} map[string]interface{} "User deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid user ID or deletion failed"
+// @Param id path int true "User ID" minimum(1)
+// @Success 200 {object} models.DeleteUserResponse "User deleted successfully"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid user ID"
+// @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [delete]
 func (h *Handler) DeleteUser(c *app.RequestContext) {
 	id, err := h.GetParamUint(c, "id")
