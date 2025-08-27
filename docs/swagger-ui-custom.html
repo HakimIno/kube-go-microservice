@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Service API Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="./swagger-ui.css">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #1e40af;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .swagger-ui .topbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 1rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .swagger-ui .topbar .download-url-wrapper {
+            display: none;
+        }
+
+        .swagger-ui .info {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .swagger-ui .info .title {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .swagger-ui .info .description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #64748b;
+        }
+
+        .swagger-ui .opblock {
+            margin: 1rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .swagger-ui .opblock.opblock-get {
+            border-color: #10b981;
+        }
+
+        .swagger-ui .opblock.opblock-post {
+            border-color: #3b82f6;
+        }
+
+        .swagger-ui .opblock.opblock-put {
+            border-color: #f59e0b;
+        }
+
+        .swagger-ui .opblock.opblock-delete {
+            border-color: #ef4444;
+        }
+
+        .swagger-ui .opblock .opblock-summary-method {
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .swagger-ui .opblock .opblock-summary-description {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .swagger-ui .opblock .opblock-summary-path {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .swagger-ui .responses-table {
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .swagger-ui .responses-table .response-col_status {
+            font-weight: 600;
+        }
+
+        .swagger-ui .responses-table .response-col_description {
+            color: #64748b;
+        }
+
+        .swagger-ui .scheme-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin: 1rem 0;
+        }
+
+        .swagger-ui .btn.execute {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .swagger-ui .btn.execute:hover {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .swagger-ui .btn.authorize {
+            background: #10b981;
+            border-color: #10b981;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .swagger-ui .btn.authorize:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        /* Custom header */
+        .custom-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .custom-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .custom-header p {
+            margin: 0.5rem 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Custom footer */
+        .custom-footer {
+            background: var(--text-color);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        .custom-footer p {
+            margin: 0;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>🚀 User Service API</h1>
+        <p>Complete API documentation for user management operations</p>
+    </div>
+
+    <div id="swagger-ui"></div>
+
+    <div class="custom-footer">
+        <p>© 2025 User Service API. Built with ❤️ using Hertz & Swagger</p>
+    </div>
+
+    <script src="./swagger-ui-bundle.js"></script>
+    <script src="./swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: "http://localhost:8081/swagger/doc.json",
+                dom_id: '#swagger-ui',
+                validatorUrl: null,
+                oauth2RedirectUrl: `${window.location.protocol}//${window.location.host}${window.location.pathname.split('/').slice(0, window.location.pathname.split('/').length - 1).join('/')}/oauth2-redirect.html`,
+                persistAuthorization: false,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                docExpansion: "list",
+                deepLinking: true,
+                defaultModelsExpandDepth: -1,
+                tryItOutEnabled: true,
+                requestInterceptor: function(request) {
+                    // Add custom headers if needed
+                    request.headers['X-API-Version'] = '1.0';
+                    return request;
+                },
+                responseInterceptor: function(response) {
+                    // Custom response handling
+                    console.log('API Response:', response);
+                    return response;
+                }
+            });
+
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>
