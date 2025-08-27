@@ -7,8 +7,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/hertz-contrib/swagger"
-	swaggerFiles "github.com/swaggo/files"
+	"kube/internal/middleware"
 )
 
 // ServerConfig holds configuration for the server
@@ -45,13 +44,7 @@ func NewServer(config ServerConfig) *CommonServer {
 
 	// Add swagger if URL is provided
 	if config.SwaggerURL != "" {
-		url := swagger.URL(config.SwaggerURL + "/swagger/doc.json")
-		h.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url,
-			swagger.DocExpansion("list"),
-			swagger.DeepLinking(true),
-			swagger.DefaultModelsExpandDepth(-1),
-			swagger.PersistAuthorization(false),
-		))
+		middleware.RegisterSwagger(h, config.SwaggerURL)
 	}
 
 	return &CommonServer{

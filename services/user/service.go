@@ -3,6 +3,7 @@ package user
 import (
 	"time"
 
+	"kube/internal/middleware"
 	apperrors "kube/pkg/errors"
 	"kube/pkg/models"
 	"kube/pkg/services"
@@ -127,14 +128,17 @@ func (s *Service) Login(req *models.UserLoginRequest) (*models.UserResponse, str
 	}
 
 	// Generate JWT token with role
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"email":   user.Email,
-		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
-		"iat":     time.Now().Unix(),
-		"nbf":     time.Now().Unix(),
-	})
+	claims := &middleware.Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		Role:   user.Role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)), // 24 hours
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
@@ -156,14 +160,17 @@ func (s *Service) RefreshToken(userID uint) (*models.UserResponse, string, error
 	}
 
 	// Generate new JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"email":   user.Email,
-		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
-		"iat":     time.Now().Unix(),
-		"nbf":     time.Now().Unix(),
-	})
+	claims := &middleware.Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		Role:   user.Role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)), // 24 hours
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {

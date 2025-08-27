@@ -81,13 +81,13 @@ func (h *Handler) Login(c *app.RequestContext) {
 
 // RefreshToken godoc
 // @Summary Refresh authentication token
-// @Description Generate a new JWT token for the authenticated user
+// @Description Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.
 // @Tags users
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} models.RefreshTokenResponse "Token refreshed successfully"
-// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Router /api/v1/users/refresh [post]
 func (h *Handler) RefreshToken(c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
@@ -111,13 +111,13 @@ func (h *Handler) RefreshToken(c *app.RequestContext) {
 
 // GetCurrentUser godoc
 // @Summary Get current user information
-// @Description Retrieve information of the currently authenticated user
+// @Description Retrieve information of the currently authenticated user. Requires valid Bearer token in Authorization header.
 // @Tags users
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} models.GetUserResponse "Current user information"
-// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Router /api/v1/users/me [get]
 func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
@@ -137,7 +137,7 @@ func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 
 // ChangePassword godoc
 // @Summary Change user password
-// @Description Change the password of the currently authenticated user
+// @Description Change the password of the currently authenticated user. Requires valid Bearer token in Authorization header.
 // @Tags users
 // @Accept json
 // @Produce json
@@ -145,7 +145,7 @@ func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 // @Param password body models.ChangePasswordRequest true "Password change data"
 // @Success 200 {object} models.ChangePasswordResponse "Password changed successfully"
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
-// @Failure 401 {object} models.ErrorResponse "Unauthorized or invalid current password"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid current password"
 // @Router /api/v1/users/change-password [post]
 func (h *Handler) ChangePassword(c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
@@ -170,13 +170,15 @@ func (h *Handler) ChangePassword(c *app.RequestContext) {
 
 // GetUser godoc
 // @Summary Get user by ID
-// @Description Retrieve user information by user ID
+// @Description Retrieve user information by user ID. Requires valid Bearer token in Authorization header.
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "User ID" minimum(1)
 // @Success 200 {object} models.GetUserResponse "User information"
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid user ID"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [get]
 func (h *Handler) GetUser(c *app.RequestContext) {
@@ -197,14 +199,16 @@ func (h *Handler) GetUser(c *app.RequestContext) {
 
 // UpdateUser godoc
 // @Summary Update user information
-// @Description Update user profile information
+// @Description Update user profile information. Requires valid Bearer token in Authorization header.
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "User ID" minimum(1)
 // @Param user body models.UserUpdateRequest true "User update data"
 // @Success 200 {object} models.UpdateUserResponse "User updated successfully"
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data or user ID"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [put]
 func (h *Handler) UpdateUser(c *app.RequestContext) {
@@ -231,13 +235,15 @@ func (h *Handler) UpdateUser(c *app.RequestContext) {
 
 // DeleteUser godoc
 // @Summary Delete user
-// @Description Delete a user account by ID
+// @Description Delete a user account by ID. Requires valid Bearer token in Authorization header.
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "User ID" minimum(1)
 // @Success 200 {object} models.DeleteUserResponse "User deleted successfully"
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid user ID"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [delete]
 func (h *Handler) DeleteUser(c *app.RequestContext) {

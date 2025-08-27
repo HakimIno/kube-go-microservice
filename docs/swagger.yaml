@@ -342,7 +342,8 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Delete a user account by ID
+      description: Delete a user account by ID. Requires valid Bearer token in Authorization
+        header.
       parameters:
       - description: User ID
         in: path
@@ -361,17 +362,24 @@ paths:
           description: Invalid user ID
           schema:
             $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Unauthorized - Bearer token required or invalid
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "404":
           description: User not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete user
       tags:
       - users
     get:
       consumes:
       - application/json
-      description: Retrieve user information by user ID
+      description: Retrieve user information by user ID. Requires valid Bearer token
+        in Authorization header.
       parameters:
       - description: User ID
         in: path
@@ -390,17 +398,24 @@ paths:
           description: Invalid user ID
           schema:
             $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Unauthorized - Bearer token required or invalid
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "404":
           description: User not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get user by ID
       tags:
       - users
     put:
       consumes:
       - application/json
-      description: Update user profile information
+      description: Update user profile information. Requires valid Bearer token in
+        Authorization header.
       parameters:
       - description: User ID
         in: path
@@ -425,10 +440,16 @@ paths:
           description: Invalid request data or user ID
           schema:
             $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Unauthorized - Bearer token required or invalid
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "404":
           description: User not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update user information
       tags:
       - users
@@ -436,7 +457,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Change the password of the currently authenticated user
+      description: Change the password of the currently authenticated user. Requires
+        valid Bearer token in Authorization header.
       parameters:
       - description: Password change data
         in: body
@@ -456,7 +478,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ValidationErrorResponse'
         "401":
-          description: Unauthorized or invalid current password
+          description: Unauthorized - Bearer token required or invalid current password
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
@@ -502,7 +524,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve information of the currently authenticated user
+      description: Retrieve information of the currently authenticated user. Requires
+        valid Bearer token in Authorization header.
       produces:
       - application/json
       responses:
@@ -511,7 +534,7 @@ paths:
           schema:
             $ref: '#/definitions/models.GetUserResponse'
         "401":
-          description: Unauthorized
+          description: Unauthorized - Bearer token required or invalid
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
@@ -523,7 +546,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Generate a new JWT token for the authenticated user
+      description: Generate a new JWT token for the authenticated user. Requires valid
+        Bearer token in Authorization header.
       produces:
       - application/json
       responses:
@@ -532,7 +556,7 @@ paths:
           schema:
             $ref: '#/definitions/models.RefreshTokenResponse'
         "401":
-          description: Unauthorized
+          description: Unauthorized - Bearer token required or invalid
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
@@ -575,7 +599,7 @@ schemes:
 - https
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
+    description: Enter the token with the `Bearer ` prefix, e.g. "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     in: header
     name: Authorization
     type: apiKey

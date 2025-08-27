@@ -30,7 +30,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Change the password of the currently authenticated user",
+                "description": "Change the password of the currently authenticated user. Requires valid Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -66,7 +66,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized or invalid current password",
+                        "description": "Unauthorized - Bearer token required or invalid current password",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -133,7 +133,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve information of the currently authenticated user",
+                "description": "Retrieve information of the currently authenticated user. Requires valid Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -152,7 +152,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized - Bearer token required or invalid",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -167,7 +167,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Generate a new JWT token for the authenticated user",
+                "description": "Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -186,7 +186,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized - Bearer token required or invalid",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -242,7 +242,12 @@ const docTemplate = `{
         },
         "/api/v1/users/{id}": {
             "get": {
-                "description": "Retrieve user information by user ID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve user information by user ID. Requires valid Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -276,6 +281,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ValidationErrorResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "User not found",
                         "schema": {
@@ -285,7 +296,12 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update user profile information",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update user profile information. Requires valid Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -328,6 +344,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ValidationErrorResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "User not found",
                         "schema": {
@@ -337,7 +359,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Delete a user account by ID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a user account by ID. Requires valid Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -369,6 +396,12 @@ const docTemplate = `{
                         "description": "Invalid user ID",
                         "schema": {
                             "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "404": {
@@ -840,7 +873,7 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "description": "Enter the token with the ` + "`" + `Bearer ` + "`" + ` prefix, e.g. \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
