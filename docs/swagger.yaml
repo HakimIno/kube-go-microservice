@@ -1,5 +1,16 @@
 basePath: /
 definitions:
+  models.ChangePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+    required:
+    - current_password
+    - new_password
+    type: object
   models.UserCreateRequest:
     properties:
       email:
@@ -10,6 +21,8 @@ definitions:
         type: string
       password:
         minLength: 6
+        type: string
+      role:
         type: string
       username:
         type: string
@@ -42,7 +55,7 @@ info:
   contact:
     email: support@example.com
     name: API Support
-    url: https://github.com/your-username/user-service
+    url: https://github.com/your-username/kube
   description: This is a user management service API built with Hertz framework.
   license:
     name: Apache 2.0
@@ -145,6 +158,41 @@ paths:
       summary: Update user information
       tags:
       - users
+  /api/v1/users/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change the password of the currently authenticated user
+      parameters:
+      - description: Password change data
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized or invalid current password
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - users
   /api/v1/users/login:
     post:
       consumes:
@@ -176,6 +224,52 @@ paths:
             additionalProperties: true
             type: object
       summary: User login
+      tags:
+      - users
+  /api/v1/users/me:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve information of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current user information
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user information
+      tags:
+      - users
+  /api/v1/users/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new JWT token for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Refresh authentication token
       tags:
       - users
   /api/v1/users/register:

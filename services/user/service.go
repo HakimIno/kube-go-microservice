@@ -38,12 +38,19 @@ func (s *Service) CreateUser(req *models.UserCreateRequest) (*models.UserRespons
 			return apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Password hashing failed", err.Error())
 		}
 
+		// Set default role if not provided
+		role := req.Role
+		if role == "" {
+			role = "user" // Default role
+		}
+
 		user = &models.User{
 			Username:  req.Username,
 			Email:     req.Email,
 			Password:  string(hashedPassword),
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
+			Role:      role,
 			IsActive:  true,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -119,19 +126,85 @@ func (s *Service) Login(req *models.UserLoginRequest) (*models.UserResponse, str
 		return nil, "", apperrors.New(apperrors.ErrCodeAccountDeactivated, "Account deactivated", "Your account has been deactivated")
 	}
 
-	// Generate JWT token
+	// Generate JWT token with role
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
+		"iat":     time.Now().Unix(),
+		"nbf":     time.Now().Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
-		return nil, "", err
+		return nil, "", apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Token generation failed", err.Error())
 	}
 
 	return s.toUserResponse(&user), tokenString, nil
+}
+
+// RefreshToken generates a new token for the user
+func (s *Service) RefreshToken(userID uint) (*models.UserResponse, string, error) {
+	var user models.User
+	if err := s.GetDB().First(&user, userID).Error; err != nil {
+		return nil, "", apperrors.Wrap(err, apperrors.ErrCodeUserNotFound, "User not found", "User not found")
+	}
+
+	if !user.IsActive {
+		return nil, "", apperrors.New(apperrors.ErrCodeAccountDeactivated, "Account deactivated", "Your account has been deactivated")
+	}
+
+	// Generate new JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"email":   user.Email,
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
+		"iat":     time.Now().Unix(),
+		"nbf":     time.Now().Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		return nil, "", apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Token generation failed", err.Error())
+	}
+
+	return s.toUserResponse(&user), tokenString, nil
+}
+
+// ChangePassword allows users to change their password
+func (s *Service) ChangePassword(userID uint, req *models.ChangePasswordRequest) error {
+	var user models.User
+	if err := s.GetDB().First(&user, userID).Error; err != nil {
+		return apperrors.Wrap(err, apperrors.ErrCodeUserNotFound, "User not found", "User not found")
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword)); err != nil {
+		return apperrors.New(apperrors.ErrCodeInvalidCredentials, "Invalid current password", "Current password is incorrect")
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Password hashing failed", err.Error())
+	}
+
+	// Update password
+	user.Password = string(hashedPassword)
+	user.UpdatedAt = time.Now()
+
+	if err := s.GetDB().Save(&user).Error; err != nil {
+		return apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Failed to update password", err.Error())
+	}
+
+	return nil
+}
+
+// GetCurrentUser returns the current user's information
+func (s *Service) GetCurrentUser(userID uint) (*models.UserResponse, error) {
+	return s.GetUserByID(userID)
 }
 
 func (s *Service) toUserResponse(user *models.User) *models.UserResponse {
@@ -141,6 +214,7 @@ func (s *Service) toUserResponse(user *models.User) *models.UserResponse {
 		Email:     user.Email,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
+		Role:      user.Role,
 		Avatar:    user.Avatar,
 		IsActive:  user.IsActive,
 		CreatedAt: user.CreatedAt,

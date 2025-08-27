@@ -13,6 +13,7 @@ type User struct {
 	Password  string         `json:"-" gorm:"not null"` // "-" means don't include in JSON
 	FirstName string         `json:"first_name"`
 	LastName  string         `json:"last_name"`
+	Role      string         `json:"role" gorm:"default:'user'"`
 	Avatar    string         `json:"avatar"`
 	IsActive  bool           `json:"is_active" gorm:"default:true"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -26,6 +27,7 @@ type UserCreateRequest struct {
 	Password  string `json:"password" binding:"required,min=6"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
+	Role      string `json:"role"`
 }
 
 type UserUpdateRequest struct {
@@ -39,12 +41,18 @@ type UserLoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+}
+
 type UserResponse struct {
 	ID        uint      `json:"id"`
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`
+	Role      string    `json:"role"`
 	Avatar    string    `json:"avatar"`
 	IsActive  bool      `json:"is_active"`
 	CreatedAt time.Time `json:"created_at"`

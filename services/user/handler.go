@@ -77,6 +77,95 @@ func (h *Handler) Login(c *app.RequestContext) {
 	h.SendSuccess(c, 200, response, "Login successful")
 }
 
+// RefreshToken godoc
+// @Summary Refresh authentication token
+// @Description Generate a new JWT token for the authenticated user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Token refreshed successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /api/v1/users/refresh [post]
+func (h *Handler) RefreshToken(c *app.RequestContext) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
+		return
+	}
+
+	user, token, err := h.service.RefreshToken(userID.(uint))
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"user":  user,
+		"token": token,
+	}
+	h.SendSuccess(c, 200, response, "Token refreshed successfully")
+}
+
+// GetCurrentUser godoc
+// @Summary Get current user information
+// @Description Retrieve information of the currently authenticated user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Current user information"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /api/v1/users/me [get]
+func (h *Handler) GetCurrentUser(c *app.RequestContext) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
+		return
+	}
+
+	user, err := h.service.GetCurrentUser(userID.(uint))
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, user, "Current user retrieved successfully")
+}
+
+// ChangePassword godoc
+// @Summary Change user password
+// @Description Change the password of the currently authenticated user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param password body models.ChangePasswordRequest true "Password change data"
+// @Success 200 {object} map[string]interface{} "Password changed successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized or invalid current password"
+// @Failure 400 {object} map[string]interface{} "Invalid request data"
+// @Router /api/v1/users/change-password [post]
+func (h *Handler) ChangePassword(c *app.RequestContext) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
+		return
+	}
+
+	var req models.ChangePasswordRequest
+	if err := c.BindJSON(&req); err != nil {
+		h.SendValidationError(c, "Invalid request data format")
+		return
+	}
+
+	if err := h.service.ChangePassword(userID.(uint), &req); err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, nil, "Password changed successfully")
+}
+
 // GetUser godoc
 // @Summary Get user by ID
 // @Description Retrieve user information by user ID

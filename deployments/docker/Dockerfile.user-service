@@ -1,6 +1,9 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
+
+# Install swag CLI for swagger generation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -8,6 +11,9 @@ RUN go mod download
 
 # Copy source code
 COPY . .
+
+# Generate swagger documentation
+RUN swag init -g cmd/user-service/main.go
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o user-service ./cmd/user-service
@@ -21,6 +27,9 @@ WORKDIR /root/
 
 # Copy the binary from builder stage
 COPY --from=builder /app/user-service .
+
+# Copy swagger documentation
+COPY --from=builder /app/docs ./docs
 
 # Expose port
 EXPOSE 8081
