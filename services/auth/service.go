@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -9,10 +8,10 @@ import (
 	apperrors "kube/pkg/errors"
 	"kube/pkg/models"
 	"kube/pkg/services"
+	"kube/pkg/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -124,13 +123,12 @@ func (s *Service) GenerateQRCode(req *models.QRCodeRequest) (*models.QRCodeRespo
 	// สร้าง QR code ที่มีแค่เส้นเดียว - URL สำหรับ mobile app
 	qrData := fmt.Sprintf("kube://qr-login?session_id=%s", sessionID)
 
-	// ใช้ QR code แบบ Low (มีแค่เส้นเดียว)
-	qrCodeBytes, err := qrcode.Encode(qrData, qrcode.Low, 256)
+	// สร้าง QR code พร้อม logo ตรงกลาง
+	logoPath := "assets/logo_app.png"
+	qrCodeImage, err := utils.GenerateQRCodeWithLogo(qrData, logoPath, 256)
 	if err != nil {
 		return nil, apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Failed to generate QR code", err.Error())
 	}
-
-	qrCodeImage := "data:image/png;base64," + base64.StdEncoding.EncodeToString(qrCodeBytes)
 
 	expiresAt := time.Now().Add(5 * time.Minute)
 	session := &models.QRLoginSession{
