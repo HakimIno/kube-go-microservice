@@ -124,7 +124,7 @@ func (s *Service) GenerateQRCode(req *models.QRCodeRequest) (*models.QRCodeRespo
 	qrData := fmt.Sprintf("kube://qr-login?session_id=%s", sessionID)
 
 	// สร้าง QR code พร้อม logo ตรงกลาง
-	logoPath := "assets/logo_app.png"
+	logoPath := "assets/logo.jpg"
 	qrCodeImage, err := utils.GenerateQRCodeWithLogo(qrData, logoPath, 256)
 	if err != nil {
 		return nil, apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Failed to generate QR code", err.Error())

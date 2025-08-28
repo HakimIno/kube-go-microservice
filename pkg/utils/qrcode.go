@@ -30,7 +30,8 @@ func GenerateQRCodeWithLogo(data string, logoPath string, size int) (string, err
 
 	options := []standard.ImageOption{
 		standard.WithCircleShape(),
-		standard.WithLogoImageFilePNG(logoPath),
+		standard.WithLogoImageFileJPEG(logoPath),
+		standard.WithBorderWidth(10),
 	}
 
 	w := standard.NewWithWriter(bufferWriter, options...)
