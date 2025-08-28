@@ -88,6 +88,29 @@ definitions:
         example: "2025-08-27T08:15:03Z"
         type: string
     type: object
+  models.GenerateQRResponse:
+    properties:
+      data:
+        properties:
+          qr_code:
+            $ref: '#/definitions/models.QRCodeResponse'
+        type: object
+      message:
+        example: QR code generated successfully
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/qr/generate
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
   models.GetUserResponse:
     properties:
       data:
@@ -129,6 +152,104 @@ definitions:
         type: string
       path:
         example: /api/v1/users/login
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.QRCodeRequest:
+    properties:
+      device_info:
+        example: Mobile App v1.0
+        type: string
+    type: object
+  models.QRCodeResponse:
+    properties:
+      expires_at:
+        example: "2025-08-27T08:20:03Z"
+        type: string
+      qr_code_image:
+        description: Base64 encoded PNG
+        example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+        type: string
+      session_id:
+        example: qr_abc123def456
+        type: string
+    type: object
+  models.QRLoginStatusResponse:
+    properties:
+      message:
+        example: Login successful
+        type: string
+      session_id:
+        example: qr_abc123def456
+        type: string
+      status:
+        example: confirmed
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      user:
+        $ref: '#/definitions/models.UserResponse'
+    type: object
+  models.QRLoginStatusResponseWrapper:
+    properties:
+      data:
+        properties:
+          status:
+            $ref: '#/definitions/models.QRLoginStatusResponse'
+        type: object
+      message:
+        example: Session status retrieved
+        type: string
+      method:
+        example: GET
+        type: string
+      path:
+        example: /api/v1/users/qr/status
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
+  models.QRScanRequest:
+    properties:
+      app_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      session_id:
+        example: qr_abc123def456
+        type: string
+    required:
+    - app_token
+    - session_id
+    type: object
+  models.QRScanResponse:
+    properties:
+      data:
+        properties:
+          session_id:
+            example: qr_abc123def456
+            type: string
+          status:
+            example: scanned
+            type: string
+        type: object
+      message:
+        example: QR scan successful
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/qr/scan
         type: string
       success:
         example: true
@@ -338,6 +459,180 @@ info:
   title: User Service API
   version: "1.0"
 paths:
+  /api/v1/auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change the password of the currently authenticated user. Requires
+        valid Bearer token in Authorization header.
+      parameters:
+      - description: Password change data
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            $ref: '#/definitions/models.ChangePasswordResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Unauthorized - Bearer token required or invalid current password
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - auth
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Account deactivated
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: User login
+      tags:
+      - auth
+  /api/v1/auth/qr/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate a QR code that can be scanned for login authentication
+      parameters:
+      - description: Device information (optional)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/models.QRCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: QR code generated successfully
+          schema:
+            $ref: '#/definitions/models.GenerateQRResponse'
+        "500":
+          description: Failed to generate QR code
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Generate QR code for login
+      tags:
+      - auth
+  /api/v1/auth/qr/scan:
+    post:
+      consumes:
+      - application/json
+      description: Mobile app sends app token when scanning QR code
+      parameters:
+      - description: QR scan data from mobile app
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.QRScanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: QR scan successful
+          schema:
+            $ref: '#/definitions/models.QRScanResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Invalid token or session
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Mobile app scan QR code
+      tags:
+      - auth
+  /api/v1/auth/qr/status:
+    get:
+      consumes:
+      - application/json
+      description: Check the status of a QR login session (for polling after QR code
+        scan)
+      parameters:
+      - description: QR login session ID
+        in: query
+        name: session_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session status retrieved
+          schema:
+            $ref: '#/definitions/models.QRLoginStatusResponseWrapper'
+        "400":
+          description: Invalid session ID
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "404":
+          description: Session not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get QR login status
+      tags:
+      - auth
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new JWT token for the authenticated user. Requires valid
+        Bearer token in Authorization header.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            $ref: '#/definitions/models.RefreshTokenResponse'
+        "401":
+          description: Unauthorized - Bearer token required or invalid
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Refresh authentication token
+      tags:
+      - auth
   /api/v1/users/{id}:
     delete:
       consumes:
@@ -453,73 +748,6 @@ paths:
       summary: Update user information
       tags:
       - users
-  /api/v1/users/change-password:
-    post:
-      consumes:
-      - application/json
-      description: Change the password of the currently authenticated user. Requires
-        valid Bearer token in Authorization header.
-      parameters:
-      - description: Password change data
-        in: body
-        name: password
-        required: true
-        schema:
-          $ref: '#/definitions/models.ChangePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Password changed successfully
-          schema:
-            $ref: '#/definitions/models.ChangePasswordResponse'
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/models.ValidationErrorResponse'
-        "401":
-          description: Unauthorized - Bearer token required or invalid current password
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Change user password
-      tags:
-      - users
-  /api/v1/users/login:
-    post:
-      consumes:
-      - application/json
-      description: Authenticate user with email and password
-      parameters:
-      - description: Login credentials
-        in: body
-        name: credentials
-        required: true
-        schema:
-          $ref: '#/definitions/models.UserLoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Login successful
-          schema:
-            $ref: '#/definitions/models.LoginResponse'
-        "400":
-          description: Invalid request data
-          schema:
-            $ref: '#/definitions/models.ValidationErrorResponse'
-        "401":
-          description: Invalid credentials
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Account deactivated
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      summary: User login
-      tags:
-      - users
   /api/v1/users/me:
     get:
       consumes:
@@ -540,28 +768,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get current user information
-      tags:
-      - users
-  /api/v1/users/refresh:
-    post:
-      consumes:
-      - application/json
-      description: Generate a new JWT token for the authenticated user. Requires valid
-        Bearer token in Authorization header.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Token refreshed successfully
-          schema:
-            $ref: '#/definitions/models.RefreshTokenResponse'
-        "401":
-          description: Unauthorized - Bearer token required or invalid
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Refresh authentication token
       tags:
       - users
   /api/v1/users/register:

@@ -47,68 +47,6 @@ func (h *Handler) Register(c *app.RequestContext) {
 	h.SendSuccess(c, 201, user, "User created successfully")
 }
 
-// Login godoc
-// @Summary User login
-// @Description Authenticate user with email and password
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param credentials body models.UserLoginRequest true "Login credentials"
-// @Success 200 {object} models.LoginResponse "Login successful"
-// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
-// @Failure 401 {object} models.ErrorResponse "Invalid credentials"
-// @Failure 403 {object} models.ErrorResponse "Account deactivated"
-// @Router /api/v1/users/login [post]
-func (h *Handler) Login(c *app.RequestContext) {
-	var req models.UserLoginRequest
-	if err := c.BindJSON(&req); err != nil {
-		h.SendValidationError(c, "Invalid request data format")
-		return
-	}
-
-	user, token, err := h.service.Login(&req)
-	if err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	response := map[string]interface{}{
-		"user":  user,
-		"token": token,
-	}
-	h.SendSuccess(c, 200, response, "Login successful")
-}
-
-// RefreshToken godoc
-// @Summary Refresh authentication token
-// @Description Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} models.RefreshTokenResponse "Token refreshed successfully"
-// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
-// @Router /api/v1/users/refresh [post]
-func (h *Handler) RefreshToken(c *app.RequestContext) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
-		return
-	}
-
-	user, token, err := h.service.RefreshToken(userID.(uint))
-	if err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	response := map[string]interface{}{
-		"user":  user,
-		"token": token,
-	}
-	h.SendSuccess(c, 200, response, "Token refreshed successfully")
-}
-
 // GetCurrentUser godoc
 // @Summary Get current user information
 // @Description Retrieve information of the currently authenticated user. Requires valid Bearer token in Authorization header.
@@ -133,39 +71,6 @@ func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 	}
 
 	h.SendSuccess(c, 200, user, "Current user retrieved successfully")
-}
-
-// ChangePassword godoc
-// @Summary Change user password
-// @Description Change the password of the currently authenticated user. Requires valid Bearer token in Authorization header.
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param password body models.ChangePasswordRequest true "Password change data"
-// @Success 200 {object} models.ChangePasswordResponse "Password changed successfully"
-// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
-// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid current password"
-// @Router /api/v1/users/change-password [post]
-func (h *Handler) ChangePassword(c *app.RequestContext) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
-		return
-	}
-
-	var req models.ChangePasswordRequest
-	if err := c.BindJSON(&req); err != nil {
-		h.SendValidationError(c, "Invalid request data format")
-		return
-	}
-
-	if err := h.service.ChangePassword(userID.(uint), &req); err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	h.SendSuccess(c, 200, nil, "Password changed successfully")
 }
 
 // GetUser godoc

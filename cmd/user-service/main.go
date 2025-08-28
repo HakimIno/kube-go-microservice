@@ -8,6 +8,7 @@ import (
 	"kube/internal/database"
 	"kube/pkg/models"
 	"kube/pkg/server"
+	"kube/services/auth"
 	"kube/services/user"
 	"time"
 )
@@ -36,11 +37,13 @@ func main() {
 	cfg := config.Load()
 	db := database.Init(cfg.Database)
 
-	if err := db.AutoMigrate(&models.User{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.QRLoginSession{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	userService := user.NewService(db, cfg.JWT.SecretKey)
+	// Initialize services
+	authService := auth.NewService(db, cfg.JWT.SecretKey)
+	userService := user.NewService(db)
 
 	serverConfig := server.ServerConfig{
 		Port:         "8081",
@@ -51,6 +54,10 @@ func main() {
 	}
 
 	srv := server.NewServer(serverConfig)
+
+	// Register routes
+	auth.RegisterRoutes(srv.Hertz, authService)
 	user.RegisterRoutes(srv.Hertz, userService)
+
 	srv.Start()
 }

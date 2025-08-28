@@ -1,0 +1,202 @@
+package auth
+
+import (
+	"kube/pkg/errors"
+	"kube/pkg/handlers"
+	"kube/pkg/models"
+
+	"github.com/cloudwego/hertz/pkg/app"
+)
+
+type Handler struct {
+	*handlers.BaseHandler
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{
+		BaseHandler: handlers.NewBaseHandler(),
+		service:     service,
+	}
+}
+
+// Login godoc
+// @Summary User login
+// @Description Authenticate user with email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param credentials body models.UserLoginRequest true "Login credentials"
+// @Success 200 {object} models.LoginResponse "Login successful"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Invalid credentials"
+// @Failure 403 {object} models.ErrorResponse "Account deactivated"
+// @Router /api/v1/auth/login [post]
+func (h *Handler) Login(c *app.RequestContext) {
+	var req models.UserLoginRequest
+	if err := c.BindJSON(&req); err != nil {
+		h.SendValidationError(c, "Invalid request data format")
+		return
+	}
+
+	user, token, err := h.service.Login(&req)
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"user":  user,
+		"token": token,
+	}
+	h.SendSuccess(c, 200, response, "Login successful")
+}
+
+// RefreshToken godoc
+// @Summary Refresh authentication token
+// @Description Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.RefreshTokenResponse "Token refreshed successfully"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
+// @Router /api/v1/auth/refresh [post]
+func (h *Handler) RefreshToken(c *app.RequestContext) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
+		return
+	}
+
+	user, token, err := h.service.RefreshToken(userID.(uint))
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	response := map[string]interface{}{
+		"user":  user,
+		"token": token,
+	}
+	h.SendSuccess(c, 200, response, "Token refreshed successfully")
+}
+
+// ChangePassword godoc
+// @Summary Change user password
+// @Description Change the password of the currently authenticated user. Requires valid Bearer token in Authorization header.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param password body models.ChangePasswordRequest true "Password change data"
+// @Success 200 {object} models.ChangePasswordResponse "Password changed successfully"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid current password"
+// @Router /api/v1/auth/change-password [post]
+func (h *Handler) ChangePassword(c *app.RequestContext) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
+		return
+	}
+
+	var req models.ChangePasswordRequest
+	if err := c.BindJSON(&req); err != nil {
+		h.SendValidationError(c, "Invalid request data format")
+		return
+	}
+
+	if err := h.service.ChangePassword(userID.(uint), &req); err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, nil, "Password changed successfully")
+}
+
+// GenerateQRCode godoc
+// @Summary Generate QR code for login
+// @Description Generate a QR code that can be scanned for login authentication
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.QRCodeRequest false "Device information (optional)"
+// @Success 200 {object} models.GenerateQRResponse "QR code generated successfully"
+// @Failure 500 {object} models.ErrorResponse "Failed to generate QR code"
+// @Router /api/v1/auth/qr/generate [post]
+func (h *Handler) GenerateQRCode(c *app.RequestContext) {
+	var req models.QRCodeRequest
+	if err := c.BindJSON(&req); err != nil {
+		// If binding fails, use empty request (device_info is optional)
+		req = models.QRCodeRequest{}
+	}
+
+	qrCode, err := h.service.GenerateQRCode(&req)
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, qrCode, "QR code generated successfully")
+}
+
+// QRScan godoc
+// @Summary Mobile app scan QR code
+// @Description Mobile app sends app token when scanning QR code
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.QRScanRequest true "QR scan data from mobile app"
+// @Success 200 {object} models.QRScanResponse "QR scan successful"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Invalid token or session"
+// @Router /api/v1/auth/qr/scan [post]
+func (h *Handler) QRScan(c *app.RequestContext) {
+	var req models.QRScanRequest
+	if err := c.BindJSON(&req); err != nil {
+		h.SendValidationError(c, "Invalid request data format")
+		return
+	}
+
+	// ตรวจสอบว่ามี app_token
+	if req.AppToken == "" {
+		h.SendValidationError(c, "app_token is required")
+		return
+	}
+
+	err := h.service.QRScan(&req)
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, nil, "QR scan successful")
+}
+
+// GetQRLoginStatus godoc
+// @Summary Get QR login status
+// @Description Check the status of a QR login session (for polling after QR code scan)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param session_id query string true "QR login session ID"
+// @Success 200 {object} models.QRLoginStatusResponseWrapper "Session status retrieved"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid session ID"
+// @Failure 404 {object} models.ErrorResponse "Session not found"
+// @Router /api/v1/auth/qr/status [get]
+func (h *Handler) GetQRLoginStatus(c *app.RequestContext) {
+	sessionID := c.Query("session_id")
+	if sessionID == "" {
+		h.SendValidationError(c, "session_id is required")
+		return
+	}
+
+	status, err := h.service.GetQRLoginStatus(sessionID)
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, status, "Session status retrieved")
+}

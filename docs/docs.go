@@ -23,7 +23,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/users/change-password": {
+        "/api/v1/auth/change-password": {
             "post": {
                 "security": [
                     {
@@ -38,7 +38,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "users"
+                    "auth"
                 ],
                 "summary": "Change user password",
                 "parameters": [
@@ -74,7 +74,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "description": "Authenticate user with email and password",
                 "consumes": [
@@ -84,7 +84,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "users"
+                    "auth"
                 ],
                 "summary": "User login",
                 "parameters": [
@@ -126,6 +126,169 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/auth/qr/generate": {
+            "post": {
+                "description": "Generate a QR code that can be scanned for login authentication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Generate QR code for login",
+                "parameters": [
+                    {
+                        "description": "Device information (optional)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR code generated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.GenerateQRResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to generate QR code",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/scan": {
+            "post": {
+                "description": "Mobile app sends app token when scanning QR code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Mobile app scan QR code",
+                "parameters": [
+                    {
+                        "description": "QR scan data from mobile app",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.QRScanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR scan successful",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRScanResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid token or session",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/status": {
+            "get": {
+                "description": "Check the status of a QR login session (for polling after QR code scan)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get QR login status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "QR login session ID",
+                        "name": "session_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session status retrieved",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRLoginStatusResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh authentication token",
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.RefreshTokenResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users/me": {
             "get": {
                 "security": [
@@ -149,40 +312,6 @@ const docTemplate = `{
                         "description": "Current user information",
                         "schema": {
                             "$ref": "#/definitions/models.GetUserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - Bearer token required or invalid",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/users/refresh": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Refresh authentication token",
-                "responses": {
-                    "200": {
-                        "description": "Token refreshed successfully",
-                        "schema": {
-                            "$ref": "#/definitions/models.RefreshTokenResponse"
                         }
                     },
                     "401": {
@@ -537,6 +666,39 @@ const docTemplate = `{
                 }
             }
         },
+        "models.GenerateQRResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "qr_code": {
+                            "$ref": "#/definitions/models.QRCodeResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "QR code generated successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/generate"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
         "models.GetUserResponse": {
             "type": "object",
             "properties": {
@@ -596,6 +758,145 @@ const docTemplate = `{
                 "path": {
                     "type": "string",
                     "example": "/api/v1/users/login"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.QRCodeRequest": {
+            "type": "object",
+            "properties": {
+                "device_info": {
+                    "type": "string",
+                    "example": "Mobile App v1.0"
+                }
+            }
+        },
+        "models.QRCodeResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string",
+                    "example": "2025-08-27T08:20:03Z"
+                },
+                "qr_code_image": {
+                    "description": "Base64 encoded PNG",
+                    "type": "string",
+                    "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                }
+            }
+        },
+        "models.QRLoginStatusResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Login successful"
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "confirmed"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "user": {
+                    "$ref": "#/definitions/models.UserResponse"
+                }
+            }
+        },
+        "models.QRLoginStatusResponseWrapper": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "status": {
+                            "$ref": "#/definitions/models.QRLoginStatusResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Session status retrieved"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "GET"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/status"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.QRScanRequest": {
+            "type": "object",
+            "required": [
+                "app_token",
+                "session_id"
+            ],
+            "properties": {
+                "app_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                }
+            }
+        },
+        "models.QRScanResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {
+                            "type": "string",
+                            "example": "qr_abc123def456"
+                        },
+                        "status": {
+                            "type": "string",
+                            "example": "scanned"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "QR scan successful"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/scan"
                 },
                 "success": {
                     "type": "boolean",
