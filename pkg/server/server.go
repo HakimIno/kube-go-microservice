@@ -5,9 +5,10 @@ import (
 	"log"
 	"time"
 
+	"kube/internal/middleware"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
-	"kube/internal/middleware"
 )
 
 // ServerConfig holds configuration for the server
@@ -30,6 +31,7 @@ func NewServer(config ServerConfig) *CommonServer {
 	h := server.Default(server.WithHostPorts(":" + config.Port))
 
 	// Add common middleware
+	h.Use(middleware.StrictCORSConfig()) // CORS middleware should be first
 	h.Use(LoggingMiddleware())
 	h.Use(ErrorHandlerMiddleware())
 	h.Use(RequestIDMiddleware())
