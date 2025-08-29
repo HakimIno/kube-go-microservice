@@ -160,6 +160,34 @@ definitions:
         example: "2025-08-27T08:15:03Z"
         type: string
     type: object
+  models.LogoutRequest:
+    properties:
+      refresh_token:
+        description: Optional for future use
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  models.LogoutResponse:
+    properties:
+      data:
+        example: "null"
+        type: string
+      message:
+        example: Logged out successfully
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/auth/logout
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
   models.QRCodeRequest:
     properties:
       device_info:
@@ -179,6 +207,45 @@ definitions:
         example: qr_abc123def456
         type: string
     type: object
+  models.QRConfirmRequest:
+    properties:
+      app_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      session_id:
+        example: qr_abc123def456
+        type: string
+    required:
+    - app_token
+    - session_id
+    type: object
+  models.QRConfirmResponse:
+    properties:
+      data:
+        properties:
+          session_id:
+            example: qr_abc123def456
+            type: string
+          status:
+            example: confirmed
+            type: string
+        type: object
+      message:
+        example: QR scan and login confirmed
+        type: string
+      method:
+        example: POST
+        type: string
+      path:
+        example: /api/v1/users/qr/confirm
+        type: string
+      success:
+        example: true
+        type: boolean
+      timestamp:
+        example: "2025-08-27T08:15:03Z"
+        type: string
+    type: object
   models.QRLoginStatusResponse:
     properties:
       message:
@@ -193,8 +260,6 @@ definitions:
       token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
-      user:
-        $ref: '#/definitions/models.UserResponse'
     type: object
   models.QRLoginStatusResponseWrapper:
     properties:
@@ -219,7 +284,7 @@ definitions:
         example: "2025-08-27T08:15:03Z"
         type: string
     type: object
-  models.QRScanRequest:
+  models.QRRejectRequest:
     properties:
       app_token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -231,7 +296,7 @@ definitions:
     - app_token
     - session_id
     type: object
-  models.QRScanResponse:
+  models.QRRejectResponse:
     properties:
       data:
         properties:
@@ -239,17 +304,17 @@ definitions:
             example: qr_abc123def456
             type: string
           status:
-            example: scanned
+            example: rejected
             type: string
         type: object
       message:
-        example: QR scan successful
+        example: QR login rejected
         type: string
       method:
         example: POST
         type: string
       path:
-        example: /api/v1/users/qr/scan
+        example: /api/v1/users/qr/reject
         type: string
       success:
         example: true
@@ -526,6 +591,63 @@ paths:
       summary: User login
       tags:
       - auth
+  /api/v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout user and invalidate session (client should remove token)
+      parameters:
+      - description: Optional logout data
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/models.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logged out successfully
+          schema:
+            $ref: '#/definitions/models.LogoutResponse'
+        "401":
+          description: Unauthorized - Bearer token required or invalid
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - auth
+  /api/v1/auth/qr/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Mobile app sends app token when scanning QR code and approves login
+      parameters:
+      - description: QR scan approval data from mobile app
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.QRConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: QR scan and login confirmed
+          schema:
+            $ref: '#/definitions/models.QRConfirmResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "401":
+          description: Invalid token or session
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Mobile app approve QR code scan
+      tags:
+      - auth
   /api/v1/auth/qr/generate:
     post:
       consumes:
@@ -551,25 +673,25 @@ paths:
       summary: Generate QR code for login
       tags:
       - auth
-  /api/v1/auth/qr/scan:
+  /api/v1/auth/qr/reject:
     post:
       consumes:
       - application/json
-      description: Mobile app sends app token when scanning QR code
+      description: Mobile app sends app token when scanning QR code and rejects login
       parameters:
-      - description: QR scan data from mobile app
+      - description: QR scan rejection data from mobile app
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.QRScanRequest'
+          $ref: '#/definitions/models.QRRejectRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: QR scan successful
+          description: QR login rejected
           schema:
-            $ref: '#/definitions/models.QRScanResponse'
+            $ref: '#/definitions/models.QRRejectResponse'
         "400":
           description: Invalid request data
           schema:
@@ -578,7 +700,7 @@ paths:
           description: Invalid token or session
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      summary: Mobile app scan QR code
+      summary: Mobile app reject QR code scan
       tags:
       - auth
   /api/v1/auth/qr/status:

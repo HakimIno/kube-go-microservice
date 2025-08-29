@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -11,7 +13,6 @@ import (
 	"kube/pkg/utils"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -26,6 +27,21 @@ func NewService(db *gorm.DB, jwtSecret string) *Service {
 		BaseService: services.NewBaseService(db),
 		jwtSecret:   jwtSecret,
 	}
+}
+
+func (s *Service) generateSecureSessionID() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	sessionID := base64.URLEncoding.EncodeToString(bytes)
+
+	if len(sessionID) > 32 {
+		sessionID = sessionID[:32]
+	}
+
+	return fmt.Sprintf("kube%s", sessionID), nil
 }
 
 func (s *Service) Login(req *models.UserLoginRequest) (*models.UserResponse, string, error) {
@@ -117,13 +133,29 @@ func (s *Service) ChangePassword(userID uint, req *models.ChangePasswordRequest)
 	return nil
 }
 
-func (s *Service) GenerateQRCode(req *models.QRCodeRequest) (*models.QRCodeResponse, error) {
-	sessionID := fmt.Sprintf("qr_%s", uuid.New().String()[:16])
+// Logout - ออกจากระบบ (สำหรับ JWT tokens ปกติแล้ว client จะลบ token เอง)
+func (s *Service) Logout(userID uint, req *models.LogoutRequest) error {
+	// สำหรับ JWT tokens ปกติแล้วไม่จำเป็นต้องทำอะไร server-side
+	// เพราะ tokens จะหมดอายุเองตามเวลาที่กำหนด
+	// แต่ถ้าต้องการ server-side logout สามารถ implement token blacklist ได้ที่นี่
 
-	// สร้าง QR code ที่มีแค่เส้นเดียว - URL สำหรับ mobile app
+	// ในอนาคตสามารถเพิ่ม logic นี้ได้:
+	// - บันทึก token ลงใน blacklist
+	// - ลบ refresh token จาก database
+	// - อัปเดต user session status
+
+	// ตอนนี้แค่ return success
+	return nil
+}
+
+func (s *Service) GenerateQRCode(req *models.QRCodeRequest) (*models.QRCodeResponse, error) {
+	sessionID, err := s.generateSecureSessionID()
+	if err != nil {
+		return nil, apperrors.Wrap(err, apperrors.ErrCodeInternalError, "Failed to generate session ID", err.Error())
+	}
+
 	qrData := fmt.Sprintf("kube://qr-login?session_id=%s", sessionID)
 
-	// สร้าง QR code พร้อม logo ตรงกลาง
 	logoPath := "assets/logo.jpg"
 	qrCodeImage, err := utils.GenerateQRCodeWithLogo(qrData, logoPath, 256)
 	if err != nil {
@@ -151,8 +183,8 @@ func (s *Service) GenerateQRCode(req *models.QRCodeRequest) (*models.QRCodeRespo
 	}, nil
 }
 
-// QRScan - mobile app ส่ง app token เมื่อสแกน QR code
-func (s *Service) QRScan(req *models.QRScanRequest) error {
+// QRConfirm - mobile app ส่ง app token เมื่อสแกน QR code และ approve (เปลี่ยนเป็น confirmed)
+func (s *Service) QRConfirm(req *models.QRConfirmRequest) error {
 	var session models.QRLoginSession
 	if err := s.GetDB().Where("id = ? AND status = 'pending' AND expires_at > ?", req.SessionID, time.Now()).First(&session).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -167,9 +199,37 @@ func (s *Service) QRScan(req *models.QRScanRequest) error {
 		return err
 	}
 
-	// อัปเดต session เป็น "scanned"
+	// อัปเดต session เป็น "confirmed" เมื่อ mobile app approve
 	session.UserID = &user.ID
-	session.Status = "scanned"
+	session.Status = "confirmed"
+	session.UpdatedAt = time.Now()
+
+	if err := s.GetDB().Save(&session).Error; err != nil {
+		return apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Failed to update session", err.Error())
+	}
+
+	return nil
+}
+
+// QRReject - mobile app ส่ง app token เมื่อสแกน QR code และ reject
+func (s *Service) QRReject(req *models.QRRejectRequest) error {
+	var session models.QRLoginSession
+	if err := s.GetDB().Where("id = ? AND status = 'pending' AND expires_at > ?", req.SessionID, time.Now()).First(&session).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return apperrors.New(apperrors.ErrCodeInvalidCredentials, "Invalid or expired session", "QR login session not found or expired")
+		}
+		return apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Database error", err.Error())
+	}
+
+	// ตรวจสอบ app token
+	user, err := s.validateAppToken(req.AppToken)
+	if err != nil {
+		return err
+	}
+
+	// อัปเดต session เป็น "rejected" เมื่อ mobile app reject
+	session.UserID = &user.ID
+	session.Status = "rejected"
 	session.UpdatedAt = time.Now()
 
 	if err := s.GetDB().Save(&session).Error; err != nil {
@@ -181,7 +241,7 @@ func (s *Service) QRScan(req *models.QRScanRequest) error {
 
 func (s *Service) GetQRLoginStatus(sessionID string) (*models.QRLoginStatusResponse, error) {
 	var session models.QRLoginSession
-	if err := s.GetDB().Preload("User").Where("id = ?", sessionID).First(&session).Error; err != nil {
+	if err := s.GetDB().Where("id = ?", sessionID).First(&session).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apperrors.New(apperrors.ErrCodeInvalidCredentials, "Session not found", "QR login session not found")
 		}
@@ -194,13 +254,18 @@ func (s *Service) GetQRLoginStatus(sessionID string) (*models.QRLoginStatusRespo
 		Message:   s.getStatusMessage(session.Status),
 	}
 
-	if session.Status == "confirmed" && session.User != nil {
-		response.User = s.toUserResponse(session.User)
+	if session.Status == "confirmed" {
+		// สร้าง JWT token สำหรับ user ที่ confirmed
+		// ต้องโหลด user data เฉพาะตอนนี้
+		var user models.User
+		if err := s.GetDB().Where("id = ?", session.UserID).First(&user).Error; err != nil {
+			return nil, apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Failed to load user data", err.Error())
+		}
 
 		claims := &middleware.Claims{
-			UserID: session.User.ID,
-			Email:  session.User.Email,
-			Role:   session.User.Role,
+			UserID: user.ID,
+			Email:  user.Email,
+			Role:   user.Role,
 			RegisteredClaims: jwt.RegisteredClaims{
 				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -261,7 +326,8 @@ func (s *Service) validateAppToken(appToken string) (*models.User, error) {
 }
 
 func (s *Service) CleanupExpiredSessions() error {
-	result := s.GetDB().Where("expires_at < ? AND status = 'pending'", time.Now()).Delete(&models.QRLoginSession{})
+	// ลบ expired sessions และ rejected sessions ที่หมดอายุแล้ว
+	result := s.GetDB().Where("expires_at < ? AND (status = 'pending' OR status = 'rejected')", time.Now()).Delete(&models.QRLoginSession{})
 	if result.Error != nil {
 		return apperrors.Wrap(result.Error, apperrors.ErrCodeDatabaseError, "Failed to cleanup expired sessions", result.Error.Error())
 	}
@@ -272,10 +338,10 @@ func (s *Service) getStatusMessage(status string) string {
 	switch status {
 	case "pending":
 		return "Waiting for QR code scan"
-	case "scanned":
-		return "QR code scanned, waiting for confirmation"
 	case "confirmed":
 		return "Login successful"
+	case "rejected":
+		return "Login rejected by user"
 	case "expired":
 		return "Session expired"
 	default:

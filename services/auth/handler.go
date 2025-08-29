@@ -115,6 +115,38 @@ func (h *Handler) ChangePassword(c *app.RequestContext) {
 	h.SendSuccess(c, 200, nil, "Password changed successfully")
 }
 
+// Logout godoc
+// @Summary User logout
+// @Description Logout user and invalidate session (client should remove token)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.LogoutRequest false "Optional logout data"
+// @Success 200 {object} models.LogoutResponse "Logged out successfully"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
+// @Router /api/v1/auth/logout [post]
+func (h *Handler) Logout(c *app.RequestContext) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
+		return
+	}
+
+	var req models.LogoutRequest
+	if err := c.BindJSON(&req); err != nil {
+		// If binding fails, use empty request (optional data)
+		req = models.LogoutRequest{}
+	}
+
+	if err := h.service.Logout(userID.(uint), &req); err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, nil, "Logged out successfully")
+}
+
 // GenerateQRCode godoc
 // @Summary Generate QR code for login
 // @Description Generate a QR code that can be scanned for login authentication
@@ -141,19 +173,19 @@ func (h *Handler) GenerateQRCode(c *app.RequestContext) {
 	h.SendSuccess(c, 200, qrCode, "QR code generated successfully")
 }
 
-// QRScan godoc
-// @Summary Mobile app scan QR code
-// @Description Mobile app sends app token when scanning QR code
+// QRConfirm godoc
+// @Summary Mobile app approve QR code scan
+// @Description Mobile app sends app token when scanning QR code and approves login
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body models.QRScanRequest true "QR scan data from mobile app"
-// @Success 200 {object} models.QRScanResponse "QR scan successful"
+// @Param request body models.QRConfirmRequest true "QR scan approval data from mobile app"
+// @Success 200 {object} models.QRConfirmResponse "QR scan and login confirmed"
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
 // @Failure 401 {object} models.ErrorResponse "Invalid token or session"
-// @Router /api/v1/auth/qr/scan [post]
-func (h *Handler) QRScan(c *app.RequestContext) {
-	var req models.QRScanRequest
+// @Router /api/v1/auth/qr/confirm [post]
+func (h *Handler) QRConfirm(c *app.RequestContext) {
+	var req models.QRConfirmRequest
 	if err := c.BindJSON(&req); err != nil {
 		h.SendValidationError(c, "Invalid request data format")
 		return
@@ -165,13 +197,46 @@ func (h *Handler) QRScan(c *app.RequestContext) {
 		return
 	}
 
-	err := h.service.QRScan(&req)
+	err := h.service.QRConfirm(&req)
 	if err != nil {
 		errors.SendError(c, err)
 		return
 	}
 
-	h.SendSuccess(c, 200, nil, "QR scan successful")
+	h.SendSuccess(c, 200, nil, "QR scan and login confirmed")
+}
+
+// QRReject godoc
+// @Summary Mobile app reject QR code scan
+// @Description Mobile app sends app token when scanning QR code and rejects login
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.QRRejectRequest true "QR scan rejection data from mobile app"
+// @Success 200 {object} models.QRRejectResponse "QR login rejected"
+// @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Invalid token or session"
+// @Router /api/v1/auth/qr/reject [post]
+func (h *Handler) QRReject(c *app.RequestContext) {
+	var req models.QRRejectRequest
+	if err := c.BindJSON(&req); err != nil {
+		h.SendValidationError(c, "Invalid request data format")
+		return
+	}
+
+	// ตรวจสอบว่ามี app_token
+	if req.AppToken == "" {
+		h.SendValidationError(c, "app_token is required")
+		return
+	}
+
+	err := h.service.QRReject(&req)
+	if err != nil {
+		errors.SendError(c, err)
+		return
+	}
+
+	h.SendSuccess(c, 200, nil, "QR login rejected")
 }
 
 // GetQRLoginStatus godoc

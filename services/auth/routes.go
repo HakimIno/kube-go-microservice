@@ -26,13 +26,15 @@ func RegisterRoutes(h *server.Hertz, service *Service) {
 		{
 			// QR Code Login Routes - เรียบง่ายและชัดเจน
 			qr.POST("/generate", qrLimiter, func(ctx context.Context, c *app.RequestContext) { handler.GenerateQRCode(c) })
-			qr.POST("/scan", qrLimiter, func(ctx context.Context, c *app.RequestContext) { handler.QRScan(c) }) // Mobile app สแกน QR code
+			qr.POST("/confirm", qrLimiter, func(ctx context.Context, c *app.RequestContext) { handler.QRConfirm(c) }) // Mobile app approve QR code
+			qr.POST("/reject", qrLimiter, func(ctx context.Context, c *app.RequestContext) { handler.QRReject(c) })   // Mobile app reject QR code
 			qr.GET("/status", func(ctx context.Context, c *app.RequestContext) { handler.GetQRLoginStatus(c) })
 		}
 
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware(cfg.JWT.SecretKey))
 		{
+			protected.POST("/logout", func(ctx context.Context, c *app.RequestContext) { handler.Logout(c) })
 			protected.POST("/refresh", func(ctx context.Context, c *app.RequestContext) { handler.RefreshToken(c) })
 			protected.POST("/change-password", func(ctx context.Context, c *app.RequestContext) { handler.ChangePassword(c) })
 		}

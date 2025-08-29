@@ -7,7 +7,7 @@ import (
 type QRLoginSession struct {
 	ID         string    `json:"id" gorm:"primaryKey"`
 	UserID     *uint     `json:"user_id" gorm:"index"`
-	Status     string    `json:"status" gorm:"type:varchar(20);default:'pending'"` // pending, scanned, confirmed, expired
+	Status     string    `json:"status" gorm:"type:varchar(20);default:'pending'"` // pending, confirmed, rejected, expired
 	QRCodeData string    `json:"qr_code_data" gorm:"type:text"`
 	ExpiresAt  time.Time `json:"expires_at" gorm:"index"`
 	CreatedAt  time.Time `json:"created_at"`
@@ -25,8 +25,14 @@ type QRCodeResponse struct {
 	ExpiresAt   time.Time `json:"expires_at" example:"2025-08-27T08:20:03Z"`
 }
 
-// QR Scan Request - สำหรับ mobile app ส่งมาเมื่อสแกน QR code
-type QRScanRequest struct {
+// QR Confirm Request - สำหรับ mobile app ส่งมาเมื่อสแกน QR code และ approve
+type QRConfirmRequest struct {
+	SessionID string `json:"session_id" binding:"required" example:"qr_abc123def456"`
+	AppToken  string `json:"app_token" binding:"required" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+// QR Reject Request - สำหรับ mobile app ส่งมาเมื่อสแกน QR code และ reject
+type QRRejectRequest struct {
 	SessionID string `json:"session_id" binding:"required" example:"qr_abc123def456"`
 	AppToken  string `json:"app_token" binding:"required" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }
@@ -36,11 +42,10 @@ type QRLoginStatusRequest struct {
 }
 
 type QRLoginStatusResponse struct {
-	SessionID string        `json:"session_id" example:"qr_abc123def456"`
-	Status    string        `json:"status" example:"confirmed"`
-	User      *UserResponse `json:"user,omitempty"`
-	Token     string        `json:"token,omitempty" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-	Message   string        `json:"message" example:"Login successful"`
+	SessionID string `json:"session_id" example:"qr_abc123def456"`
+	Status    string `json:"status" example:"confirmed"`
+	Token     string `json:"token,omitempty" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	Message   string `json:"message" example:"Login successful"`
 }
 
 // Response Models for Swagger Documentation
@@ -67,14 +72,26 @@ type QRLoginStatusResponseWrapper struct {
 	Method    string `json:"method" example:"GET"`
 }
 
-type QRScanResponse struct {
+type QRConfirmResponse struct {
 	Success bool   `json:"success" example:"true"`
-	Message string `json:"message" example:"QR scan successful"`
+	Message string `json:"message" example:"QR scan and login confirmed"`
 	Data    struct {
 		SessionID string `json:"session_id" example:"qr_abc123def456"`
-		Status    string `json:"status" example:"scanned"`
+		Status    string `json:"status" example:"confirmed"`
 	} `json:"data"`
 	Timestamp string `json:"timestamp" example:"2025-08-27T08:15:03Z"`
-	Path      string `json:"path" example:"/api/v1/users/qr/scan"`
+	Path      string `json:"path" example:"/api/v1/users/qr/confirm"`
+	Method    string `json:"method" example:"POST"`
+}
+
+type QRRejectResponse struct {
+	Success bool   `json:"success" example:"true"`
+	Message string `json:"message" example:"QR login rejected"`
+	Data    struct {
+		SessionID string `json:"session_id" example:"qr_abc123def456"`
+		Status    string `json:"status" example:"rejected"`
+	} `json:"data"`
+	Timestamp string `json:"timestamp" example:"2025-08-27T08:15:03Z"`
+	Path      string `json:"path" example:"/api/v1/users/qr/reject"`
 	Method    string `json:"method" example:"POST"`
 }

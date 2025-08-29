@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"os"
 
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
@@ -28,10 +29,14 @@ func GenerateQRCodeWithLogo(data string, logoPath string, size int) (string, err
 	var buf bytes.Buffer
 	bufferWriter := &bufferCloser{&buf}
 
+	halftonePath := "assets/dog.jpg"
+	if _, err := os.Stat(halftonePath); os.IsNotExist(err) {
+		fmt.Printf("halftone image file %s not found\n", halftonePath)
+	}
+
 	options := []standard.ImageOption{
-		standard.WithCircleShape(),
-		standard.WithLogoImageFileJPEG(logoPath),
-		standard.WithBorderWidth(10),
+		standard.WithHalftone(halftonePath),
+		standard.WithQRWidth(21),
 	}
 
 	w := standard.NewWithWriter(bufferWriter, options...)

@@ -46,6 +46,10 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"new_password" binding:"required,min=6" example:"newpassword123"`
 }
 
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token,omitempty" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."` // Optional for future use
+}
+
 type UserResponse struct {
 	ID        uint      `json:"id" example:"1"`
 	Username  string    `json:"username" example:"johndoe"`
@@ -133,6 +137,15 @@ type ChangePasswordResponse struct {
 	Data      *string `json:"data" example:"null"`
 	Timestamp string  `json:"timestamp" example:"2025-08-27T08:15:03Z"`
 	Path      string  `json:"path" example:"/api/v1/users/change-password"`
+	Method    string  `json:"method" example:"POST"`
+}
+
+type LogoutResponse struct {
+	Success   bool    `json:"success" example:"true"`
+	Message   string  `json:"message" example:"Logged out successfully"`
+	Data      *string `json:"data" example:"null"`
+	Timestamp string  `json:"timestamp" example:"2025-08-27T08:15:03Z"`
+	Path      string  `json:"path" example:"/api/v1/auth/logout"`
 	Method    string  `json:"method" example:"POST"`
 }
 

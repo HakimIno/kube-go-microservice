@@ -126,6 +126,96 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout user and invalidate session (client should remove token)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User logout",
+                "parameters": [
+                    {
+                        "description": "Optional logout data",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.LogoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.LogoutResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/confirm": {
+            "post": {
+                "description": "Mobile app sends app token when scanning QR code and approves login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Mobile app approve QR code scan",
+                "parameters": [
+                    {
+                        "description": "QR scan approval data from mobile app",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.QRConfirmRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR scan and login confirmed",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRConfirmResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid token or session",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/qr/generate": {
             "post": {
                 "description": "Generate a QR code that can be scanned for login authentication",
@@ -165,9 +255,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/qr/scan": {
+        "/api/v1/auth/qr/reject": {
             "post": {
-                "description": "Mobile app sends app token when scanning QR code",
+                "description": "Mobile app sends app token when scanning QR code and rejects login",
                 "consumes": [
                     "application/json"
                 ],
@@ -177,23 +267,23 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Mobile app scan QR code",
+                "summary": "Mobile app reject QR code scan",
                 "parameters": [
                     {
-                        "description": "QR scan data from mobile app",
+                        "description": "QR scan rejection data from mobile app",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.QRScanRequest"
+                            "$ref": "#/definitions/models.QRRejectRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "QR scan successful",
+                        "description": "QR login rejected",
                         "schema": {
-                            "$ref": "#/definitions/models.QRScanResponse"
+                            "$ref": "#/definitions/models.QRRejectResponse"
                         }
                     },
                     "400": {
@@ -769,6 +859,45 @@ const docTemplate = `{
                 }
             }
         },
+        "models.LogoutRequest": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {
+                    "description": "Optional for future use",
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "models.LogoutResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "string",
+                    "example": "null"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Logged out successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/auth/logout"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
         "models.QRCodeRequest": {
             "type": "object",
             "properties": {
@@ -796,6 +925,61 @@ const docTemplate = `{
                 }
             }
         },
+        "models.QRConfirmRequest": {
+            "type": "object",
+            "required": [
+                "app_token",
+                "session_id"
+            ],
+            "properties": {
+                "app_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                }
+            }
+        },
+        "models.QRConfirmResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {
+                            "type": "string",
+                            "example": "qr_abc123def456"
+                        },
+                        "status": {
+                            "type": "string",
+                            "example": "confirmed"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "QR scan and login confirmed"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/confirm"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
         "models.QRLoginStatusResponse": {
             "type": "object",
             "properties": {
@@ -814,9 +998,6 @@ const docTemplate = `{
                 "token": {
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                },
-                "user": {
-                    "$ref": "#/definitions/models.UserResponse"
                 }
             }
         },
@@ -853,7 +1034,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.QRScanRequest": {
+        "models.QRRejectRequest": {
             "type": "object",
             "required": [
                 "app_token",
@@ -870,7 +1051,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.QRScanResponse": {
+        "models.QRRejectResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -882,13 +1063,13 @@ const docTemplate = `{
                         },
                         "status": {
                             "type": "string",
-                            "example": "scanned"
+                            "example": "rejected"
                         }
                     }
                 },
                 "message": {
                     "type": "string",
-                    "example": "QR scan successful"
+                    "example": "QR login rejected"
                 },
                 "method": {
                     "type": "string",
@@ -896,7 +1077,7 @@ const docTemplate = `{
                 },
                 "path": {
                     "type": "string",
-                    "example": "/api/v1/users/qr/scan"
+                    "example": "/api/v1/users/qr/reject"
                 },
                 "success": {
                     "type": "boolean",
