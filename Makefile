@@ -1,4 +1,41 @@
-.PHONY: build run dev clean swagger docker-build docker-run docker-dev
+.PHONY: help build run dev clean swagger docker-check docker-install-mac docker-build docker-run docker-dev docker-prod docker-stop docker-clean docker-logs docker-restart podman-dev podman-prod podman-clean
+
+# Default target
+help:
+	@echo "🚀 Available commands:"
+	@echo ""
+	@echo "📦 Build & Run:"
+	@echo "  make build         - Build the user service"
+	@echo "  make run           - Build and run the service"
+	@echo "  make dev           - Run in development mode with hot reload"
+	@echo ""
+	@echo "🐳 Docker:"
+	@echo "  make docker-check      - Check Docker installation and status"
+	@echo "  make docker-install-mac - Open Docker Desktop download page (macOS)"
+	@echo "  make docker-dev        - Start Docker development environment"
+	@echo "  make docker-prod       - Start Docker production environment"
+	@echo "  make docker-stop       - Stop Docker containers"
+	@echo "  make docker-clean      - Clean Docker containers and images"
+	@echo "  make docker-logs       - Show Docker development logs"
+	@echo "  make docker-restart    - Restart Docker development environment"
+	@echo ""
+	@echo "🟦 Podman:"
+	@echo "  make podman-dev        - Start Podman development environment"
+	@echo "  make podman-prod       - Start Podman production environment"
+	@echo "  make podman-clean      - Clean Podman containers and images"
+	@echo ""
+	@echo "📚 Documentation:"
+	@echo "  make swagger       - Generate swagger documentation"
+	@echo ""
+	@echo "🧹 Utilities:"
+	@echo "  make clean         - Clean build artifacts"
+	@echo "  make deps          - Install dependencies"
+	@echo "  make setup         - Setup development environment"
+	@echo ""
+	@echo "💡 Quick start:"
+	@echo "  1. For Docker: make docker-check && make docker-dev"
+	@echo "  2. For Podman: make podman-dev"
+	@echo "  3. For local:  make dev"
 
 # Build the application
 build: swagger
@@ -52,6 +89,26 @@ watch:
 	fi
 
 # Docker commands
+docker-check:
+	@echo "Checking Docker installation and status..."
+	@if command -v docker > /dev/null; then \
+		echo "✅ Docker is installed: $$(docker --version)"; \
+		if docker info > /dev/null 2>&1; then \
+			echo "✅ Docker is running"; \
+		else \
+			echo "❌ Docker is not running. Please start Docker first."; \
+			echo "💡 Alternative: Run 'make podman-dev' to use Podman instead"; \
+		fi; \
+	else \
+		echo "❌ Docker is not installed"; \
+		echo "📝 Install from: https://docs.docker.com/get-docker/"; \
+		echo "💡 Alternative: Run 'make podman-dev' to use Podman instead"; \
+	fi
+
+docker-install-mac:
+	@echo "Opening Docker Desktop download page for macOS..."
+	@open "https://docs.docker.com/desktop/install/mac-install/"
+
 docker-build:
 	@echo "Building Docker image..."
 	docker build -f deployments/docker/Dockerfile.user-service -t user-service .
@@ -78,3 +135,26 @@ docker-clean:
 	docker compose -f deployments/docker-compose/docker-compose.yml down -v
 	docker compose -f deployments/docker-compose/docker-compose.dev.yml down -v
 	docker system prune -f
+
+docker-logs:
+	@echo "Showing Docker development environment logs..."
+	docker compose -f deployments/docker-compose/docker-compose.dev.yml logs -f
+
+docker-restart:
+	@echo "Restarting Docker development environment..."
+	docker compose -f deployments/docker-compose/docker-compose.dev.yml restart
+
+# Podman commands
+podman-dev:
+	@echo "Starting Podman development environment..."
+	./scripts/podman-dev.sh
+
+podman-prod:
+	@echo "Starting production Podman environment..."
+	./scripts/podman-prod.sh
+
+podman-clean:
+	@echo "Cleaning Podman containers and images..."
+	cd deployments/podman-compose && podman-compose -f docker-compose.yml down -v
+	cd deployments/podman-compose && podman-compose -f docker-compose.dev.yml down -v
+	podman system prune -f

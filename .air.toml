@@ -5,9 +5,9 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/main"
-  cmd = "swag init -g cmd/user-service/main.go && go build -o ./tmp/main ./cmd/user-service"
+  cmd = "go build -o ./tmp/main ./cmd/user-service/main.go"
   delay = 1000
-  exclude_dir = ["assets", "tmp", "vendor", "testdata", "docs", ".git", "node_modules"]
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", "output", "docs", "deployments"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
