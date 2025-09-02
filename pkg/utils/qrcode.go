@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"kube/internal/middleware"
+
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
 )
@@ -22,7 +24,7 @@ func GenerateQRCodeWithLogo(data string, logoPath string, size int) (string, err
 	qrc, err := qrcode.New(data)
 
 	if err != nil {
-		fmt.Printf("could not generate QRCode: %v", err)
+		middleware.LogError("Could not generate QRCode", err)
 		return "", err
 	}
 
@@ -31,7 +33,7 @@ func GenerateQRCodeWithLogo(data string, logoPath string, size int) (string, err
 
 	halftonePath := "assets/dog.jpg"
 	if _, err := os.Stat(halftonePath); os.IsNotExist(err) {
-		fmt.Printf("halftone image file %s not found\n", halftonePath)
+		middleware.LogWarn(fmt.Sprintf("Halftone image file %s not found", halftonePath))
 	}
 
 	options := []standard.ImageOption{
@@ -42,7 +44,7 @@ func GenerateQRCodeWithLogo(data string, logoPath string, size int) (string, err
 	w := standard.NewWithWriter(bufferWriter, options...)
 
 	if err = qrc.Save(w); err != nil {
-		fmt.Printf("could not save image: %v", err)
+		middleware.LogError("Could not save QR code image", err)
 		return "", err
 	}
 

@@ -61,16 +61,53 @@ check_docker_running() {
     if ! docker info > /dev/null 2>&1; then
         print_error "Docker is not running!"
         echo ""
-        print_status "📝 How to start Docker:"
+        print_status "📝 Attempting to start Docker..."
+        
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            echo "  🍎 macOS: Open Docker Desktop application"
-            echo "     - Or run: open /Applications/Docker.app"
+            # Try to start Docker Desktop on macOS
+            if [ -d "/Applications/Docker.app" ]; then
+                print_status "🍎 Starting Docker Desktop..."
+                open /Applications/Docker.app
+                
+                # Wait for Docker to start (up to 60 seconds)
+                print_status "⏳ Waiting for Docker to start..."
+                for i in {1..60}; do
+                    if docker info > /dev/null 2>&1; then
+                        print_success "✅ Docker started successfully!"
+                        return 0
+                    fi
+                    sleep 1
+                    if [ $((i % 10)) -eq 0 ]; then
+                        print_status "⏳ Still waiting... ($i/60 seconds)"
+                    fi
+                done
+                
+                print_error "❌ Docker failed to start within 60 seconds"
+                print_status "📝 Manual steps:"
+                echo "  1. Manually open Docker Desktop application"
+                echo "  2. Wait for Docker to fully start"
+                echo "  3. Run 'make docker-dev' again"
+            else
+                print_error "Docker Desktop not found at /Applications/Docker.app"
+                print_status "📝 Please install Docker Desktop from:"
+                echo "  🔗 https://docs.docker.com/desktop/install/mac-install/"
+            fi
         elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            echo "  🐧 Linux: Run 'sudo systemctl start docker'"
-            echo "     - Or use: sudo service docker start"
+            print_status "🐧 Attempting to start Docker service..."
+            if command -v systemctl &> /dev/null; then
+                sudo systemctl start docker
+            elif command -v service &> /dev/null; then
+                sudo service docker start
+            fi
+            sleep 5
+            if docker info > /dev/null 2>&1; then
+                print_success "✅ Docker started successfully!"
+                return 0
+            fi
         elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
-            echo "  🪟 Windows: Open Docker Desktop application"
+            print_status "🪟 Please start Docker Desktop manually on Windows"
         fi
+        
         echo ""
         print_warning "💡 Alternative: You can use Podman instead by running 'make podman-dev'"
         exit 1

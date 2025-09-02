@@ -84,8 +84,8 @@ run_dev_environment() {
     podman-compose -f docker-compose.dev.yml logs -f redis &
     REDIS_LOG_PID=$!
     
-    # Wait for any process to exit
-    wait -n
+    # Wait for any process to exit (macOS compatible)
+    wait
     
     # Kill all background processes
     kill $USER_LOG_PID $POSTGRES_LOG_PID $REDIS_LOG_PID 2>/dev/null || true
@@ -104,6 +104,18 @@ cleanup() {
     else
         print_warning "Podman compose directory not found: $PODMAN_COMPOSE_DIR"
     fi
+    
+    # Kill background processes if they exist
+    if [ ! -z "$USER_LOG_PID" ]; then
+        kill $USER_LOG_PID 2>/dev/null || true
+    fi
+    if [ ! -z "$POSTGRES_LOG_PID" ]; then
+        kill $POSTGRES_LOG_PID 2>/dev/null || true
+    fi
+    if [ ! -z "$REDIS_LOG_PID" ]; then
+        kill $REDIS_LOG_PID 2>/dev/null || true
+    fi
+    
     print_success "Cleanup completed"
 }
 

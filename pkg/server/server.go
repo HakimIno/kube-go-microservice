@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"time"
 
 	"kube/internal/middleware"
@@ -32,7 +32,7 @@ func NewServer(config ServerConfig) *CommonServer {
 
 	// Add common middleware
 	h.Use(middleware.StrictCORSConfig()) // CORS middleware should be first
-	h.Use(LoggingMiddleware())
+	h.Use(middleware.LoggingMiddleware())
 	h.Use(ErrorHandlerMiddleware())
 	h.Use(RequestIDMiddleware())
 
@@ -57,9 +57,9 @@ func NewServer(config ServerConfig) *CommonServer {
 
 // Start starts the server with logging
 func (s *CommonServer) Start() {
-	log.Printf("%s starting on port %s", s.config.ServiceName, s.config.Port)
+	middleware.LogSuccess(fmt.Sprintf("%s starting on port %s", s.config.ServiceName, s.config.Port))
 	if s.config.SwaggerURL != "" {
-		log.Printf("Swagger UI available at: %s/swagger/index.html", s.config.SwaggerURL)
+		middleware.LogInfo(fmt.Sprintf("Swagger UI available at: %s/swagger/index.html", s.config.SwaggerURL))
 	}
 	s.Spin()
 }

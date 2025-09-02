@@ -2,9 +2,9 @@ package database
 
 import (
 	"fmt"
-	"log"
 
 	"kube/internal/config"
+	"kube/internal/middleware"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -18,11 +18,12 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		middleware.LogError("Failed to connect to database", err)
+		panic("Database connection failed")
 	}
 
 	DB = db
-	log.Println("Database connected successfully")
+	middleware.LogSuccess("Database connected successfully")
 	return db
 }
 
