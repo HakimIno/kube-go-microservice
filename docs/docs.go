@@ -379,41 +379,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve information of the currently authenticated user. Requires valid Bearer token in Authorization header.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get current user information",
-                "responses": {
-                    "200": {
-                        "description": "Current user information",
-                        "schema": {
-                            "$ref": "#/definitions/models.GetUserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - Bearer token required or invalid",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/users/register": {
+        "/api/v1/auth/register": {
             "post": {
                 "description": "Create a new user account with the provided information",
                 "consumes": [
@@ -423,7 +389,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "users"
+                    "auth"
                 ],
                 "summary": "Register a new user",
                 "parameters": [
@@ -452,6 +418,40 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "User already exists",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve information of the currently authenticated user. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get current user information",
+                "responses": {
+                    "200": {
+                        "description": "Current user information",
+                        "schema": {
+                            "$ref": "#/definitions/models.GetUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }

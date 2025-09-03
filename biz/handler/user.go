@@ -1,6 +1,8 @@
-package user
+package handler
 
 import (
+	"context"
+	"kube/biz/service"
 	"kube/pkg/errors"
 	"kube/pkg/handlers"
 	"kube/pkg/models"
@@ -8,13 +10,13 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 )
 
-type Handler struct {
+type UserHandler struct {
 	*handlers.BaseHandler
-	service *Service
+	service *service.UserService
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{
+func NewUserHandler(service *service.UserService) *UserHandler {
+	return &UserHandler{
 		BaseHandler: handlers.NewBaseHandler(),
 		service:     service,
 	}
@@ -23,15 +25,15 @@ func NewHandler(service *Service) *Handler {
 // Register godoc
 // @Summary Register a new user
 // @Description Create a new user account with the provided information
-// @Tags users
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param user body models.UserCreateRequest true "User registration data"
 // @Success 201 {object} models.RegisterResponse "User created successfully"
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
 // @Failure 409 {object} models.ErrorResponse "User already exists"
-// @Router /api/v1/users/register [post]
-func (h *Handler) Register(c *app.RequestContext) {
+// @Router /api/v1/auth/register [post]
+func (h *UserHandler) Register(ctx context.Context, c *app.RequestContext) {
 	var req models.UserCreateRequest
 	if err := c.BindJSON(&req); err != nil {
 		h.SendValidationError(c, "Invalid request data format")
@@ -57,7 +59,7 @@ func (h *Handler) Register(c *app.RequestContext) {
 // @Success 200 {object} models.GetUserResponse "Current user information"
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Router /api/v1/users/me [get]
-func (h *Handler) GetCurrentUser(c *app.RequestContext) {
+func (h *UserHandler) GetCurrentUser(ctx context.Context, c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
@@ -86,7 +88,7 @@ func (h *Handler) GetCurrentUser(c *app.RequestContext) {
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [get]
-func (h *Handler) GetUser(c *app.RequestContext) {
+func (h *UserHandler) GetUser(ctx context.Context, c *app.RequestContext) {
 	id, err := h.GetParamUint(c, "id")
 	if err != nil {
 		h.SendValidationError(c, "Invalid user ID format")
@@ -116,7 +118,7 @@ func (h *Handler) GetUser(c *app.RequestContext) {
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [put]
-func (h *Handler) UpdateUser(c *app.RequestContext) {
+func (h *UserHandler) UpdateUser(ctx context.Context, c *app.RequestContext) {
 	id, err := h.GetParamUint(c, "id")
 	if err != nil {
 		h.SendValidationError(c, "Invalid user ID format")
@@ -151,7 +153,7 @@ func (h *Handler) UpdateUser(c *app.RequestContext) {
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Failure 404 {object} models.ErrorResponse "User not found"
 // @Router /api/v1/users/{id} [delete]
-func (h *Handler) DeleteUser(c *app.RequestContext) {
+func (h *UserHandler) DeleteUser(ctx context.Context, c *app.RequestContext) {
 	id, err := h.GetParamUint(c, "id")
 	if err != nil {
 		h.SendValidationError(c, "Invalid user ID format")

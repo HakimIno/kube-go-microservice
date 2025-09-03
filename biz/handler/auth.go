@@ -1,6 +1,8 @@
-package auth
+package handler
 
 import (
+	"context"
+	"kube/biz/service"
 	"kube/pkg/errors"
 	"kube/pkg/handlers"
 	"kube/pkg/models"
@@ -8,13 +10,13 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 )
 
-type Handler struct {
+type AuthHandler struct {
 	*handlers.BaseHandler
-	service *Service
+	service *service.AuthService
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{
+func NewAuthHandler(service *service.AuthService) *AuthHandler {
+	return &AuthHandler{
 		BaseHandler: handlers.NewBaseHandler(),
 		service:     service,
 	}
@@ -32,7 +34,7 @@ func NewHandler(service *Service) *Handler {
 // @Failure 401 {object} models.ErrorResponse "Invalid credentials"
 // @Failure 403 {object} models.ErrorResponse "Account deactivated"
 // @Router /api/v1/auth/login [post]
-func (h *Handler) Login(c *app.RequestContext) {
+func (h *AuthHandler) Login(ctx context.Context, c *app.RequestContext) {
 	var req models.UserLoginRequest
 	if err := c.BindJSON(&req); err != nil {
 		h.SendValidationError(c, "Invalid request data format")
@@ -62,7 +64,7 @@ func (h *Handler) Login(c *app.RequestContext) {
 // @Success 200 {object} models.RefreshTokenResponse "Token refreshed successfully"
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Router /api/v1/auth/refresh [post]
-func (h *Handler) RefreshToken(c *app.RequestContext) {
+func (h *AuthHandler) RefreshToken(ctx context.Context, c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
@@ -94,7 +96,7 @@ func (h *Handler) RefreshToken(c *app.RequestContext) {
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid current password"
 // @Router /api/v1/auth/change-password [post]
-func (h *Handler) ChangePassword(c *app.RequestContext) {
+func (h *AuthHandler) ChangePassword(ctx context.Context, c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
@@ -126,7 +128,7 @@ func (h *Handler) ChangePassword(c *app.RequestContext) {
 // @Success 200 {object} models.LogoutResponse "Logged out successfully"
 // @Failure 401 {object} models.ErrorResponse "Unauthorized - Bearer token required or invalid"
 // @Router /api/v1/auth/logout [post]
-func (h *Handler) Logout(c *app.RequestContext) {
+func (h *AuthHandler) Logout(ctx context.Context, c *app.RequestContext) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		errors.SendError(c, errors.New(errors.ErrCodeUnauthorized, "User not authenticated", "User ID not found in context"))
@@ -157,7 +159,7 @@ func (h *Handler) Logout(c *app.RequestContext) {
 // @Success 200 {object} models.GenerateQRResponse "QR code generated successfully"
 // @Failure 500 {object} models.ErrorResponse "Failed to generate QR code"
 // @Router /api/v1/auth/qr/generate [post]
-func (h *Handler) GenerateQRCode(c *app.RequestContext) {
+func (h *AuthHandler) GenerateQRCode(ctx context.Context, c *app.RequestContext) {
 	var req models.QRCodeRequest
 	if err := c.BindJSON(&req); err != nil {
 		// If binding fails, use empty request (device_info is optional)
@@ -184,7 +186,7 @@ func (h *Handler) GenerateQRCode(c *app.RequestContext) {
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
 // @Failure 401 {object} models.ErrorResponse "Invalid token or session"
 // @Router /api/v1/auth/qr/confirm [post]
-func (h *Handler) QRConfirm(c *app.RequestContext) {
+func (h *AuthHandler) QRConfirm(ctx context.Context, c *app.RequestContext) {
 	var req models.QRConfirmRequest
 	if err := c.BindJSON(&req); err != nil {
 		h.SendValidationError(c, "Invalid request data format")
@@ -217,7 +219,7 @@ func (h *Handler) QRConfirm(c *app.RequestContext) {
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid request data"
 // @Failure 401 {object} models.ErrorResponse "Invalid token or session"
 // @Router /api/v1/auth/qr/reject [post]
-func (h *Handler) QRReject(c *app.RequestContext) {
+func (h *AuthHandler) QRReject(ctx context.Context, c *app.RequestContext) {
 	var req models.QRRejectRequest
 	if err := c.BindJSON(&req); err != nil {
 		h.SendValidationError(c, "Invalid request data format")
@@ -250,7 +252,7 @@ func (h *Handler) QRReject(c *app.RequestContext) {
 // @Failure 400 {object} models.ValidationErrorResponse "Invalid session ID"
 // @Failure 404 {object} models.ErrorResponse "Session not found"
 // @Router /api/v1/auth/qr/status [get]
-func (h *Handler) GetQRLoginStatus(c *app.RequestContext) {
+func (h *AuthHandler) GetQRLoginStatus(ctx context.Context, c *app.RequestContext) {
 	sessionID := c.Query("session_id")
 	if sessionID == "" {
 		h.SendValidationError(c, "session_id is required")
