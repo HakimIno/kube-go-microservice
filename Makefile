@@ -9,20 +9,17 @@ help:
 	@echo "  make run           - Build and run the service"
 	@echo "  make dev           - Run in development mode with hot reload"
 	@echo ""
-	@echo "🐳 Docker:"
-	@echo "  make docker-check      - Check Docker installation and status"
-	@echo "  make docker-install-mac - Open Docker Desktop download page (macOS)"
-	@echo "  make docker-dev        - Start Docker development environment"
-	@echo "  make docker-prod       - Start Docker production environment"
-	@echo "  make docker-stop       - Stop Docker containers"
-	@echo "  make docker-clean      - Clean Docker containers and images"
-	@echo "  make docker-logs       - Show Docker development logs"
-	@echo "  make docker-restart    - Restart Docker development environment"
+	@echo "🐳 Container Commands:"
+	@echo "  make dev docker    - Start development environment with Docker"
+	@echo "  make dev podman    - Start development environment with Podman"
+	@echo "  make prod docker   - Start production environment with Docker"
+	@echo "  make prod podman   - Start production environment with Podman"
+	@echo "  make build docker  - Build container image with Docker"
+	@echo "  make build podman  - Build container image with Podman"
 	@echo ""
-	@echo "🟦 Podman:"
-	@echo "  make podman-dev        - Start Podman development environment"
-	@echo "  make podman-prod       - Start Podman production environment"
-	@echo "  make podman-clean      - Clean Podman containers and images"
+	@echo "🔧 Service Generation:"
+	@echo "  make generate-service SERVICE=<name> PORT=<port>"
+	@echo "  make build-generate SERVICE=<name> PORT=<port> RUNTIME=<docker|podman>"
 	@echo ""
 	@echo "📚 Documentation:"
 	@echo "  make swagger       - Generate swagger documentation"
@@ -33,8 +30,8 @@ help:
 	@echo "  make setup         - Setup development environment"
 	@echo ""
 	@echo "💡 Quick start:"
-	@echo "  1. For Docker: make docker-check && make docker-dev"
-	@echo "  2. For Podman: make podman-dev"
+	@echo "  1. For Docker: make dev docker"
+	@echo "  2. For Podman: make dev podman"
 	@echo "  3. For local:  make dev"
 
 # Build the application
@@ -88,70 +85,97 @@ watch:
 		echo "fswatch not found. Please install it or use 'make dev' instead."; \
 	fi
 
-# Docker commands
-docker-check:
-	@echo "Checking Docker installation and status..."
-	@if command -v docker > /dev/null; then \
-		echo "✅ Docker is installed: $$(docker --version)"; \
-		if docker info > /dev/null 2>&1; then \
-			echo "✅ Docker is running"; \
-		else \
-			echo "❌ Docker is not running. Please start Docker first."; \
-			echo "💡 Alternative: Run 'make podman-dev' to use Podman instead"; \
-		fi; \
-	else \
-		echo "❌ Docker is not installed"; \
-		echo "📝 Install from: https://docs.docker.com/get-docker/"; \
-		echo "💡 Alternative: Run 'make podman-dev' to use Podman instead"; \
+# Unified container commands
+docker-dev:
+	@echo "Starting Docker development environment..."
+	./scripts/dev.sh docker
+
+podman-dev:
+	@echo "Starting Podman development environment..."
+	./scripts/dev.sh podman
+
+docker-prod:
+	@echo "Starting Docker production environment..."
+	./scripts/prod.sh docker start
+
+podman-prod:
+	@echo "Starting Podman production environment..."
+	./scripts/prod.sh podman start
+
+docker-stop:
+	@echo "Stopping Docker production environment..."
+	./scripts/prod.sh docker stop
+
+podman-stop:
+	@echo "Stopping Podman production environment..."
+	./scripts/prod.sh podman stop
+
+docker-logs:
+	@echo "Showing Docker production logs..."
+	./scripts/prod.sh docker logs
+
+podman-logs:
+	@echo "Showing Podman production logs..."
+	./scripts/prod.sh podman logs
+
+docker-restart:
+	@echo "Restarting Docker production environment..."
+	./scripts/prod.sh docker restart
+
+podman-restart:
+	@echo "Restarting Podman production environment..."
+	./scripts/prod.sh podman restart
+
+# Build commands
+build-docker:
+	@echo "Building Docker container image..."
+	./scripts/build.sh user-service docker
+
+build-podman:
+	@echo "Building Podman container image..."
+	./scripts/build.sh user-service podman
+
+# Generate and build new services
+generate-service:
+	@echo "Usage: make generate-service SERVICE=<name> PORT=<port>"
+	@echo "Example: make generate-service SERVICE=video-service PORT=8082"
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Error: SERVICE parameter is required"; \
+		echo "Example: make generate-service SERVICE=video-service PORT=8082"; \
+		exit 1; \
 	fi
+	@echo "Generating service: $(SERVICE) on port $(PORT:-=8081)"
+	./scripts/generate-service.sh "$(SERVICE)" "$(PORT:-=8081)"
+
+# Build with generation
+build-generate:
+	@echo "Usage: make build-generate SERVICE=<name> PORT=<port> [RUNTIME=docker|podman]"
+	@echo "Example: make build-generate SERVICE=video-service PORT=8082 RUNTIME=docker"
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Error: SERVICE parameter is required"; \
+		echo "Example: make build-generate SERVICE=video-service PORT=8082 RUNTIME=docker"; \
+		exit 1; \
+	fi
+	@echo "Generating and building service: $(SERVICE) on port $(PORT:-=8081) with $(RUNTIME:-=docker)"
+	./scripts/build.sh "$(SERVICE)" "$(RUNTIME:-=docker)" --generate --port "$(PORT:-=8081)"
+
+# Legacy aliases for backward compatibility
+docker-check: docker-dev
+	@echo "Note: docker-check is deprecated, use 'make docker-dev' instead"
 
 docker-install-mac:
 	@echo "Opening Docker Desktop download page for macOS..."
 	@open "https://docs.docker.com/desktop/install/mac-install/"
 
-docker-build:
-	@echo "Building Docker image..."
-	docker build -f deployments/docker/Dockerfile.user-service -t user-service .
+docker-build: build-docker
 
-docker-run:
-	@echo "Running Docker container..."
-	docker run -p 8081:8081 user-service
-
-docker-dev:
-	@echo "Starting Docker development environment..."
-	./scripts/docker-dev.sh
-
-docker-prod:
-	@echo "Starting production Docker environment..."
-	docker compose -f deployments/docker-compose/docker-compose.yml up --build
-
-docker-stop:
-	@echo "Stopping Docker containers..."
-	docker compose -f deployments/docker-compose/docker-compose.yml down
-	docker compose -f deployments/docker-compose/docker-compose.dev.yml down
+docker-run: docker-dev
 
 docker-clean:
 	@echo "Cleaning Docker containers and images..."
 	docker compose -f deployments/docker-compose/docker-compose.yml down -v
 	docker compose -f deployments/docker-compose/docker-compose.dev.yml down -v
 	docker system prune -f
-
-docker-logs:
-	@echo "Showing Docker development environment logs..."
-	docker compose -f deployments/docker-compose/docker-compose.dev.yml logs -f
-
-docker-restart:
-	@echo "Restarting Docker development environment..."
-	docker compose -f deployments/docker-compose/docker-compose.dev.yml restart
-
-# Podman commands
-podman-dev:
-	@echo "Starting Podman development environment..."
-	./scripts/podman-dev.sh
-
-podman-prod:
-	@echo "Starting production Podman environment..."
-	./scripts/podman-prod.sh
 
 podman-clean:
 	@echo "Cleaning Podman containers and images..."

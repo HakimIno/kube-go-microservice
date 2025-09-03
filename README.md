@@ -1,225 +1,216 @@
-# Video Streaming Microservices
+# Kube - Microservices Framework
 
-ระบบ Video Streaming แบบ Microservices ที่สร้างด้วย Go และ Hertz Framework
-
-## 🏗️ Architecture
-
-ระบบประกอบด้วย 8 microservices:
-
-1. **User Service** (Port: 8081) - จัดการข้อมูลผู้ใช้
-2. **Video Upload Service** (Port: 8082) - อัปโหลดวิดีโอ
-3. **Video Processing Service** (Port: 8083) - ประมวลผลวิดีโอ
-4. **Metadata Service** (Port: 8084) - จัดการข้อมูลวิดีโอ
-5. **Streaming Service** (Port: 8085) - สตรีมมิ่งวิดีโอ
-6. **Search Service** (Port: 8086) - ค้นหาวิดีโอ
-7. **Recommendation Service** (Port: 8087) - แนะนำวิดีโอ
-8. **Engagement Service** (Port: 8088) - จัดการปฏิสัมพันธ์
+A modern microservices framework built with Go and Hertz, featuring containerization support for both Docker and Podman.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
-- Go 1.23+
-- Docker & Docker Compose
+- Go 1.21+
+- Docker or Podman
 - PostgreSQL
 - Redis
 
-### Running with Docker Compose
+### Development Environment
 
+#### Option 1: Using Docker (Recommended)
 ```bash
-# Clone repository
-git clone <repository-url>
-cd kube
+# Start development environment with Docker
+make dev docker
 
-# Start all services
-cd deployments/docker-compose
-docker-compose up -d
-
-# Check services
-docker-compose ps
+# Or directly with the script
+./scripts/dev.sh docker
 ```
 
-### Running Locally
-
-#### 1. Start Dependencies
+#### Option 2: Using Podman
 ```bash
-# Start PostgreSQL & Redis
-docker-compose -f deployments/docker-compose/docker-compose.yml up postgres redis -d
+# Start development environment with Podman
+make dev podman
+
+# Or directly with the script
+./scripts/dev.sh podman
 ```
 
-#### 2. Build Services
+#### Option 3: Local Development
 ```bash
-# Build all services
-./build.sh
-
-# Or build specific service
-./scripts/build-service.sh user-service
-
-# Binaries will be created in output/bin/
+# Run locally with hot reload
+make dev
 ```
 
-#### 3. Run Services
+### Production Environment
+
+#### Docker
 ```bash
-# Option 1: Run with script (includes environment variables)
-./scripts/run-user-service.sh
+# Start production environment
+make prod docker
 
-# Option 2: Run built binary
-./output/bin/user-service
+# Stop production environment
+make prod stop docker
 
-# Option 3: Run directly with go run
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_USER=postgres
-export DB_PASSWORD=password
-export DB_NAME=video_streaming
-export DB_SSLMODE=disable
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
-export JWT_SECRET=your-secret-key
-export JWT_EXPIRES_IN=24
+# View logs
+make prod logs docker
 
-go run cmd/user-service/main.go
+# Restart services
+make prod restart docker
 ```
 
-## 📁 Project Structure
+#### Podman
+```bash
+# Start production environment
+make prod podman
+
+# Stop production environment
+make prod stop podman
+
+# View logs
+make prod logs podman
+
+# Restart services
+make prod restart podman
+```
+
+## 🛠️ Available Commands
+
+### Development
+- `make dev` - Run locally with hot reload
+- `make dev docker` - Start Docker development environment
+- `make dev podman` - Start Podman development environment
+
+### Production
+- `make prod docker` - Start Docker production environment
+- `make prod podman` - Start Podman production environment
+- `make prod stop [docker|podman]` - Stop production environment
+- `make prod logs [docker|podman]` - View production logs
+- `make prod restart [docker|podman]` - Restart production environment
+
+### Building
+- `make build` - Build Go binary
+- `make build docker` - Build Docker container image
+- `make build podman` - Build Podman container image
+
+### Utilities
+- `make swagger` - Generate API documentation
+- `make clean` - Clean build artifacts
+- `make deps` - Install dependencies
+- `make setup` - Setup development environment
+
+## 📁 Scripts
+
+### Unified Scripts
+
+#### `./scripts/dev.sh` - Development Environment
+```bash
+# Usage: ./scripts/dev.sh [docker|podman] [--build]
+./scripts/dev.sh                    # Use Docker (default)
+./scripts/dev.sh podman            # Use Podman
+./scripts/dev.sh docker --build    # Use Docker with build
+./scripts/dev.sh podman --build    # Use Podman with build
+```
+
+#### `./scripts/prod.sh` - Production Environment
+```bash
+# Usage: ./scripts/prod.sh [docker|podman] {start|stop|logs|restart}
+./scripts/prod.sh                    # Use Docker and start (default)
+./scripts/prod.sh podman            # Use Podman and start
+./scripts/prod.sh docker stop       # Use Docker and stop
+./scripts/prod.sh podman logs       # Use Podman and show logs
+```
+
+#### `./scripts/build.sh` - Build Services
+```bash
+# Usage: ./scripts/build.sh <service-name> [docker|podman] [--push]
+./scripts/build.sh user-service                    # Native Go build
+./scripts/build.sh user-service docker            # Docker container build
+./scripts/build.sh user-service podman            # Podman container build
+./scripts/build.sh user-service docker --push     # Docker build and push
+```
+
+### Service Generation
+```bash
+# Generate a new service
+./scripts/generate-service.sh <service-name> <port>
+./scripts/generate-service.sh video-service 8082
+```
+
+## 🏗️ Project Structure
 
 ```
 kube/
-├── cmd/                           # Entry points สำหรับแต่ละ service
-│   ├── user-service/             # ระบบจัดการผู้ใช้
-│   ├── video-upload-service/     # ระบบอัปโหลดวิดีโอ
-│   ├── video-processing-service/ # ระบบประมวลผลวิดีโอ
-│   ├── metadata-service/         # ระบบจัดการข้อมูลวิดีโอ
-│   ├── streaming-service/        # ระบบสตรีมมิ่ง
-│   ├── search-service/           # ระบบค้นหา
-│   ├── recommendation-service/   # ระบบแนะนำวิดีโอ
-│   └── engagement-service/       # ระบบจัดการปฏิสัมพันธ์
-├── internal/                     # Shared internal packages
-│   ├── config/                  # Configuration management
-│   ├── database/                # Database connections
-│   ├── middleware/              # Shared middleware
-│   ├── utils/                   # Shared utilities
-│   ├── auth/                    # Authentication & Authorization
-│   ├── messaging/               # Message queue (Redis, RabbitMQ)
-│   └── storage/                 # File storage (S3, local)
-├── pkg/                         # Public packages ที่ service อื่นใช้ได้
-│   ├── models/                  # Shared data models
-│   ├── constants/               # Shared constants
-│   ├── errors/                  # Shared error definitions
-│   ├── events/                  # Event definitions
-│   └── proto/                   # Protocol buffer definitions
-├── services/                    # Business logic ของแต่ละ service
-│   ├── user/                    # User service logic
-│   ├── video-upload/            # Video upload logic
-│   ├── video-processing/        # Video processing logic
-│   ├── metadata/                # Metadata management logic
-│   ├── streaming/               # Streaming logic
-│   ├── search/                  # Search logic
-│   ├── recommendation/          # Recommendation logic
-│   └── engagement/              # Engagement logic
-├── api/                         # API definitions
-│   ├── proto/                   # Protocol buffer files
-│   └── openapi/                 # OpenAPI specifications
-├── deployments/                 # Infrastructure configs
-│   ├── docker/                  # Docker files
-│   ├── kubernetes/              # K8s manifests
-│   └── docker-compose/          # Local development
-├── scripts/                     # Build, deploy scripts
-├── docs/                        # Documentation
-└── tools/                       # Development tools
+├── cmd/                    # Service entry points
+│   └── user-service/      # User service
+├── biz/                   # Business logic
+│   ├── handler/           # HTTP handlers
+│   ├── router/            # Route definitions
+│   └── service/           # Business services
+├── internal/              # Internal packages
+│   ├── config/            # Configuration
+│   ├── database/          # Database connection
+│   └── middleware/        # HTTP middleware
+├── pkg/                   # Public packages
+│   ├── models/            # Data models
+│   ├── handlers/          # Base handlers
+│   ├── services/          # Base services
+│   └── utils/             # Utility functions
+├── deployments/           # Deployment configurations
+│   ├── docker/            # Docker configurations
+│   ├── docker-compose/    # Docker Compose files
+│   └── podman-compose/    # Podman Compose files
+└── scripts/               # Build and deployment scripts
 ```
 
-## 🔧 Technology Stack
+## 🔧 Configuration
 
-- **Framework**: Hertz (CloudWeGo)
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Message Queue**: Redis/RabbitMQ
-- **Container**: Docker
-- **Orchestration**: Kubernetes
-- **API Documentation**: OpenAPI/Swagger
-
-## 📚 Documentation
-
-- [User Service](./docs/USER_SERVICE.md)
-- [API Documentation](./api/openapi/)
-- [Deployment Guide](./deployments/)
-
-## 🧪 Testing
-
-### Test User Service
-
+Copy the environment file and configure your settings:
 ```bash
-# Health check
-curl http://localhost:8081/health
-
-# Register user
-curl -X POST http://localhost:8081/api/v1/users/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "password123",
-    "first_name": "Test",
-    "last_name": "User"
-  }'
-
-# Login
-curl -X POST http://localhost:8081/api/v1/users/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
+cp env.example .env
+# Edit .env with your configuration
 ```
 
-## 🚀 Development
+## 📚 API Documentation
 
-### Build Commands
+Once the service is running, access the Swagger UI:
+- Development: http://localhost:8081/swagger/index.html
+- Production: http://localhost:8081/swagger/index.html
 
+## 🐳 Container Support
+
+### Docker
+- Full Docker Compose support
+- Multi-stage builds
+- Development and production configurations
+
+### Podman
+- Full Podman Compose support
+- Rootless containers
+- Compatible with Docker commands
+
+## 🚀 Deployment
+
+### Development
 ```bash
-# Build all services
-./build.sh
+# Start with Docker
+make dev docker
 
-# Build specific service
-./scripts/build-service.sh <service-name>
-
-# Build with custom output path
-go build -o output/bin/<service-name> ./cmd/<service-name>
-
-# Build for different architectures
-GOOS=linux GOARCH=amd64 go build -o output/bin/<service-name>-linux ./cmd/<service-name>
+# Start with Podman
+make dev podman
 ```
 
-**Binary Locations:**
-- All services: `output/bin/`
-- Individual builds: Current directory (unless specified with `-o`)
+### Production
+```bash
+# Start with Docker
+make prod docker
 
-### Adding New Service
+# Start with Podman
+make prod podman
+```
 
-1. สร้างโฟลเดอร์ใน `cmd/` และ `services/`
-2. สร้าง main.go ใน `cmd/[service-name]/`
-3. สร้าง business logic ใน `services/[service-name]/`
-4. เพิ่ม Dockerfile ใน `deployments/docker/`
-5. อัปเดต docker-compose.yml
-6. Build script จะ detect และ build service ใหม่โดยอัตโนมัติ
+## 📝 Contributing
 
-### Code Style
-
-- ใช้ Go modules
-- ใช้ Hertz framework
-- ใช้ GORM สำหรับ database
-- ใช้ bcrypt สำหรับ password hashing
-- ใช้ JWT สำหรับ authentication
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
-MIT License
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request # kube-go-microservice
+This project is licensed under the MIT License - see the LICENSE file for details.
