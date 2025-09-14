@@ -425,6 +425,120 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/maps/search": {
+            "post": {
+                "description": "Search for places near a specific location using HERE API with caching to reduce costs",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Search for places using HERE API",
+                "parameters": [
+                    {
+                        "description": "Search parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceSearchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Places found successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/maps/search/query": {
+            "get": {
+                "description": "Search for places using query string with default location (Bangkok)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Search for places by query string",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Latitude",
+                        "name": "lat",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude",
+                        "name": "lng",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code",
+                        "name": "lang",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Places found successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users/me": {
             "get": {
                 "security": [
@@ -634,6 +748,49 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.Address": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "countryCode": {
+                    "type": "string"
+                },
+                "countryName": {
+                    "type": "string"
+                },
+                "county": {
+                    "type": "string"
+                },
+                "district": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "postalCode": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Category": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "primary": {
+                    "type": "boolean"
+                }
+            }
+        },
         "models.ChangePasswordRequest": {
             "type": "object",
             "required": [
@@ -678,6 +835,23 @@ const docTemplate = `{
                 "timestamp": {
                     "type": "string",
                     "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.Contact": {
+            "type": "object",
+            "properties": {
+                "phone": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "www": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -895,6 +1069,97 @@ const docTemplate = `{
                 "timestamp": {
                     "type": "string",
                     "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.PlaceItem": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/models.Address"
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Contact"
+                    }
+                },
+                "distance": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "position": {
+                    "$ref": "#/definitions/models.Position"
+                },
+                "resultType": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaceSearchRequest": {
+            "type": "object",
+            "required": [
+                "query"
+            ],
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "example": "th"
+                },
+                "lat": {
+                    "type": "number",
+                    "example": 13.7563
+                },
+                "limit": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "lng": {
+                    "type": "number",
+                    "example": 100.5018
+                },
+                "query": {
+                    "type": "string",
+                    "example": "วัดพระแก้ว กรุงเทพมหานคร"
+                }
+            }
+        },
+        "models.PlaceSearchResponse": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/models.SearchMeta"
+                },
+                "places": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PlaceItem"
+                    }
+                }
+            }
+        },
+        "models.Position": {
+            "type": "object",
+            "properties": {
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
                 }
             }
         },
@@ -1159,6 +1424,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.SearchMeta": {
+            "type": "object",
+            "properties": {
+                "fromCache": {
+                    "type": "boolean"
+                },
+                "query": {
+                    "type": "string"
+                },
+                "resultsCount": {
+                    "type": "integer"
+                },
+                "searchTime": {
+                    "type": "string"
+                }
+            }
+        },
         "models.UpdateUserResponse": {
             "type": "object",
             "properties": {
@@ -1352,25 +1634,17 @@ const docTemplate = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "description": "Enter the token with the ` + "`" + `Bearer ` + "`" + ` prefix, e.g. \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8081",
+	Host:             "localhost:8082",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
-	Title:            "User Service API",
-	Description:      "This is a user management service API built with Hertz framework.",
+	Title:            "Maps Service API",
+	Description:      "This is a maps service API for location search using HERE API with Redis caching to reduce costs.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

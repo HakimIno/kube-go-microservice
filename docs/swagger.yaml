@@ -1,5 +1,33 @@
 basePath: /
 definitions:
+  models.Address:
+    properties:
+      city:
+        type: string
+      countryCode:
+        type: string
+      countryName:
+        type: string
+      county:
+        type: string
+      district:
+        type: string
+      label:
+        type: string
+      postalCode:
+        type: string
+      street:
+        type: string
+    type: object
+  models.Category:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      primary:
+        type: boolean
+    type: object
   models.ChangePasswordRequest:
     properties:
       current_password:
@@ -33,6 +61,17 @@ definitions:
       timestamp:
         example: "2025-08-27T08:15:03Z"
         type: string
+    type: object
+  models.Contact:
+    properties:
+      phone:
+        items:
+          type: string
+        type: array
+      www:
+        items:
+          type: string
+        type: array
     type: object
   models.DeleteUserResponse:
     properties:
@@ -187,6 +226,67 @@ definitions:
       timestamp:
         example: "2025-08-27T08:15:03Z"
         type: string
+    type: object
+  models.PlaceItem:
+    properties:
+      address:
+        $ref: '#/definitions/models.Address'
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      contacts:
+        items:
+          $ref: '#/definitions/models.Contact'
+        type: array
+      distance:
+        type: integer
+      id:
+        type: string
+      language:
+        type: string
+      position:
+        $ref: '#/definitions/models.Position'
+      resultType:
+        type: string
+      title:
+        type: string
+    type: object
+  models.PlaceSearchRequest:
+    properties:
+      language:
+        example: th
+        type: string
+      lat:
+        example: 13.7563
+        type: number
+      limit:
+        example: 5
+        type: integer
+      lng:
+        example: 100.5018
+        type: number
+      query:
+        example: วัดพระแก้ว กรุงเทพมหานคร
+        type: string
+    required:
+    - query
+    type: object
+  models.PlaceSearchResponse:
+    properties:
+      meta:
+        $ref: '#/definitions/models.SearchMeta'
+      places:
+        items:
+          $ref: '#/definitions/models.PlaceItem'
+        type: array
+    type: object
+  models.Position:
+    properties:
+      lat:
+        type: number
+      lng:
+        type: number
     type: object
   models.QRCodeRequest:
     properties:
@@ -372,6 +472,17 @@ definitions:
         example: "2025-08-27T08:15:03Z"
         type: string
     type: object
+  models.SearchMeta:
+    properties:
+      fromCache:
+        type: boolean
+      query:
+        type: string
+      resultsCount:
+        type: integer
+      searchTime:
+        type: string
+    type: object
   models.UpdateUserResponse:
     properties:
       data:
@@ -511,17 +622,18 @@ definitions:
         example: "2025-08-27T08:15:03Z"
         type: string
     type: object
-host: localhost:8081
+host: localhost:8082
 info:
   contact:
     email: support@example.com
     name: API Support
     url: https://github.com/your-username/kube
-  description: This is a user management service API built with Hertz framework.
+  description: This is a maps service API for location search using HERE API with
+    Redis caching to reduce costs.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  title: User Service API
+  title: Maps Service API
   version: "1.0"
 paths:
   /api/v1/auth/change-password:
@@ -785,6 +897,82 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /api/v1/maps/search:
+    post:
+      consumes:
+      - application/json
+      description: Search for places near a specific location using HERE API with
+        caching to reduce costs
+      parameters:
+      - description: Search parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PlaceSearchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Places found successfully
+          schema:
+            $ref: '#/definitions/models.PlaceSearchResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Search for places using HERE API
+      tags:
+      - maps
+  /api/v1/maps/search/query:
+    get:
+      consumes:
+      - application/json
+      description: Search for places using query string with default location (Bangkok)
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Latitude
+        in: query
+        name: lat
+        type: number
+      - description: Longitude
+        in: query
+        name: lng
+        type: number
+      - description: Number of results
+        in: query
+        name: limit
+        type: integer
+      - description: Language code
+        in: query
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Places found successfully
+          schema:
+            $ref: '#/definitions/models.PlaceSearchResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/models.ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Search for places by query string
+      tags:
+      - maps
   /api/v1/users/{id}:
     delete:
       consumes:
@@ -925,10 +1113,4 @@ paths:
 schemes:
 - http
 - https
-securityDefinitions:
-  BearerAuth:
-    description: Enter the token with the `Bearer ` prefix, e.g. "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

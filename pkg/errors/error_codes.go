@@ -29,8 +29,12 @@ const (
 
 	// External Services
 	ErrCodeExternalServiceError = "EXTERNAL_SERVICE_ERROR"
+	ErrCodeExternalAPIError     = "EXTERNAL_API_ERROR"
 	ErrCodeServiceUnavailable   = "SERVICE_UNAVAILABLE"
 	ErrCodeTimeout              = "TIMEOUT"
+
+	// Cache
+	ErrCodeCacheExpired = "CACHE_EXPIRED"
 
 	// System
 	ErrCodeInternalError      = "INTERNAL_ERROR"
@@ -58,8 +62,10 @@ var ErrorCodeToHTTPStatus = map[string]int{
 	ErrCodeAccountDeactivated:   403,
 	ErrCodeInvalidOperation:     400,
 	ErrCodeExternalServiceError: 502,
+	ErrCodeExternalAPIError:     502,
 	ErrCodeServiceUnavailable:   503,
 	ErrCodeTimeout:              408,
+	ErrCodeCacheExpired:         404,
 	ErrCodeInternalError:        500,
 	ErrCodeConfigurationError:   500,
 	ErrCodeRateLimitExceeded:    429,

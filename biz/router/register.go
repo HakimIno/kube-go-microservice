@@ -16,10 +16,12 @@ func Register(r *server.Hertz, db *gorm.DB, jwtSecret string) {
 	// Initialize services
 	authService := service.NewAuthService(db, jwtSecret)
 	userService := service.NewUserService(db)
+	mapsService := service.NewMapsService(db)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
+	mapsHandler := handler.NewMapsHandler(mapsService)
 
 	// API v1 group
 	v1 := r.Group("/api/v1")
@@ -45,5 +47,12 @@ func Register(r *server.Hertz, db *gorm.DB, jwtSecret string) {
 		users.GET("/:id", middleware.AuthMiddleware(jwtSecret), userHandler.GetUser)
 		users.PUT("/:id", middleware.AuthMiddleware(jwtSecret), userHandler.UpdateUser)
 		users.DELETE("/:id", middleware.AuthMiddleware(jwtSecret), userHandler.DeleteUser)
+	}
+
+	// Maps routes (location search - no authentication required for public API)
+	maps := v1.Group("/maps")
+	{
+		maps.POST("/search", mapsHandler.SearchPlaces)           // Search places with POST
+		maps.GET("/search/query", mapsHandler.SearchPlacesByQuery) // Search places with GET query params
 	}
 }

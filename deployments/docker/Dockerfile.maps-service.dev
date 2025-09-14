@@ -1,0 +1,22 @@
+# Development Dockerfile for maps-service
+FROM golang:1.23-alpine
+
+# Install necessary packages
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 8082
+
+# Run the application directly (for development)
+CMD ["go", "run", "./cmd/maps-service/main.go"]

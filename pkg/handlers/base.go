@@ -26,17 +26,47 @@ func (h *BaseHandler) GetParamUint(c *app.RequestContext, paramName string) (uin
 	return uint(id), nil
 }
 
+// GetQueryUint extracts and validates uint parameter from query string
+func (h *BaseHandler) GetQueryUint(c *app.RequestContext, paramName string) (uint, error) {
+	paramStr := string(c.Query(paramName))
+	id, err := strconv.ParseUint(paramStr, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint(id), nil
+}
+
+// GetQueryInt extracts and validates int parameter from query string
+func (h *BaseHandler) GetQueryInt(c *app.RequestContext, paramName string) (int, error) {
+	paramStr := string(c.Query(paramName))
+	id, err := strconv.Atoi(paramStr)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// GetQueryFloat extracts and validates float64 parameter from query string
+func (h *BaseHandler) GetQueryFloat(c *app.RequestContext, paramName string) (float64, error) {
+	paramStr := string(c.Query(paramName))
+	val, err := strconv.ParseFloat(paramStr, 64)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
+}
+
 // SendSuccess sends a successful response
 func (h *BaseHandler) SendSuccess(c *app.RequestContext, statusCode int, data interface{}, message string) {
 	response := utils.H{
 		"success": true,
 		"message": message,
 	}
-	
+
 	if data != nil {
 		response["data"] = data
 	}
-	
+
 	c.JSON(statusCode, response)
 }
 

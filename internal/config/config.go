@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
+	Database   DatabaseConfig
+	Redis      RedisConfig
+	JWT        JWTConfig
+	HEREAPIKey string
 }
 
 type DatabaseConfig struct {
@@ -57,6 +58,7 @@ func Load() *Config {
 			SecretKey: getEnv("JWT_SECRET", "your-secret-key"),
 			ExpiresIn: getEnvAsInt("JWT_EXPIRES_IN", 24),
 		},
+		HEREAPIKey: getEnv("HERE_API_KEY", ""),
 	}
 }
 
