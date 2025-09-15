@@ -1,101 +1,115 @@
+version: '3.8'
+
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: kube-postgres-podman-dev
     environment:
-      POSTGRES_DB: video_streaming_dev
+      POSTGRES_DB: kube_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - kube-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kube_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - app-network
+      start_period: 30s
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: kube-redis-podman-dev
     ports:
       - "6379:6379"
     volumes:
       - redis_dev_data:/data
+    networks:
+      - kube-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
+      timeout: 3s
       retries: 5
-    networks:
-      - app-network
+      start_period: 30s
 
+  # User Service (Development with hot reload)
   user-service:
     build:
       context: ../..
       dockerfile: deployments/docker/Dockerfile.user-service.dev
+      cache_from:
+        - golang:1.25-alpine
+    container_name: kube-user-service-podman-dev
     ports:
       - "8081:8081"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: password
-      DB_NAME: video_streaming_dev
-      DB_SSLMODE: disable
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: dev-secret-key
-      JWT_EXPIRES_IN: 24
-      ENV: development
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/kube_dev?sslmode=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=dev-super-secret-jwt-key
+      - PORT=8081
+      - SERVICE_NAME=user-service
+      - GO_ENV=development
     depends_on:
       postgres:
-      
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
+    networks:
+      - kube-network
     restart: unless-stopped
     volumes:
+      # Mount source code for hot reload
       - ../../:/app
-      - /app/node_modules
-    networks:
-      - app-network
+    command: ["go", "run", "./services/user/cmd"]
 
+  # Maps Service (Development with hot reload)
   maps-service:
     build:
       context: ../..
       dockerfile: deployments/docker/Dockerfile.maps-service.dev
+      cache_from:
+        - golang:1.25-alpine
+    container_name: kube-maps-service-podman-dev
     ports:
       - "8082:8082"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: password
-      DB_NAME: video_streaming_dev
-      DB_SSLMODE: disable
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      HERE_API_KEY: WJxd-f213J08HqNIGMgM3dfQaRTwbe02D8unFbc_ge4
-      ENV: development
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/kube_dev?sslmode=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - HERE_API_KEY=WJxd-f213J08HqNIGMgM3dfQaRTwbe02D8unFbc_ge4
+      - PORT=8082
+      - SERVICE_NAME=maps-service
+      - GO_ENV=development
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
+    networks:
+      - kube-network
     restart: unless-stopped
     volumes:
+      # Mount source code for hot reload
       - ../../:/app
-      - /app/node_modules
-    networks:
-      - app-network
+    command: ["go", "run", "./services/maps/cmd"]
 
 volumes:
   postgres_dev_data:
   redis_dev_data:
 
 networks:
-  app-network:
+  kube-network:
+  
     driver: bridge
-    name: app-network
+    name: kube-network

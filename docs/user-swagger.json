@@ -1,0 +1,1362 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a user management service API built with Hertz framework.",
+        "title": "User Service API",
+        "contact": {
+            "name": "API Support",
+            "url": "https://github.com/your-username/kube",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8081",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/auth/change-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change the password of the currently authenticated user. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Change user password",
+                "parameters": [
+                    {
+                        "description": "Password change data",
+                        "name": "password",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password changed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.ChangePasswordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid current password",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "Authenticate user with email and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User login",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "schema": {
+                            "$ref": "#/definitions/models.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Account deactivated",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout user and invalidate session (client should remove token)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User logout",
+                "parameters": [
+                    {
+                        "description": "Optional logout data",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.LogoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.LogoutResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/confirm": {
+            "post": {
+                "description": "Mobile app sends app token when scanning QR code and approves login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Mobile app approve QR code scan",
+                "parameters": [
+                    {
+                        "description": "QR scan approval data from mobile app",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.QRConfirmRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR scan and login confirmed",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRConfirmResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid token or session",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/generate": {
+            "post": {
+                "description": "Generate a QR code that can be scanned for login authentication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Generate QR code for login",
+                "parameters": [
+                    {
+                        "description": "Device information (optional)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR code generated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.GenerateQRResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to generate QR code",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/reject": {
+            "post": {
+                "description": "Mobile app sends app token when scanning QR code and rejects login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Mobile app reject QR code scan",
+                "parameters": [
+                    {
+                        "description": "QR scan rejection data from mobile app",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.QRRejectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR login rejected",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRRejectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid token or session",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/qr/status": {
+            "get": {
+                "description": "Check the status of a QR login session (for polling after QR code scan)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get QR login status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "QR login session ID",
+                        "name": "session_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session status retrieved",
+                        "schema": {
+                            "$ref": "#/definitions/models.QRLoginStatusResponseWrapper"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate a new JWT token for the authenticated user. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh authentication token",
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.RefreshTokenResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/register": {
+            "post": {
+                "description": "Create a new user account with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User registration data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "User already exists",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve information of the currently authenticated user. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get current user information",
+                "responses": {
+                    "200": {
+                        "description": "Current user information",
+                        "schema": {
+                            "$ref": "#/definitions/models.GetUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve user information by user ID. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user by ID",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User information",
+                        "schema": {
+                            "$ref": "#/definitions/models.GetUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update user profile information. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update user information",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User update data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or user ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a user account by ID. Requires valid Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Delete user",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.DeleteUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "current_password",
+                "new_password"
+            ],
+            "properties": {
+                "current_password": {
+                    "type": "string",
+                    "example": "oldpassword123"
+                },
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "newpassword123"
+                }
+            }
+        },
+        "models.ChangePasswordResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "string",
+                    "example": "null"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Password changed successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/change-password"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.DeleteUserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "string",
+                    "example": "null"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "User deleted successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "DELETE"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/1"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "example": "USER_NOT_FOUND"
+                        },
+                        "details": {
+                            "type": "string",
+                            "example": "User with ID 999 not found"
+                        },
+                        "message": {
+                            "type": "string",
+                            "example": "User not found"
+                        },
+                        "request_id": {
+                            "type": "string",
+                            "example": "59744195-9e8d-4e07-b17e-39dac2ae2b48"
+                        },
+                        "timestamp": {
+                            "type": "string",
+                            "example": "2025-08-27T08:15:03.832523143Z"
+                        }
+                    }
+                },
+                "method": {
+                    "type": "string",
+                    "example": "GET"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/999"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.GenerateQRResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "qr_code": {
+                            "$ref": "#/definitions/models.QRCodeResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "QR code generated successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/generate"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.GetUserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "user": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "User retrieved successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "GET"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/1"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "token": {
+                            "type": "string",
+                            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        },
+                        "user": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Login successful"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/login"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.LogoutRequest": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {
+                    "description": "Optional for future use",
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "models.LogoutResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "string",
+                    "example": "null"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Logged out successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/auth/logout"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.QRCodeRequest": {
+            "type": "object",
+            "properties": {
+                "device_info": {
+                    "type": "string",
+                    "example": "Mobile App v1.0"
+                }
+            }
+        },
+        "models.QRCodeResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string",
+                    "example": "2025-08-27T08:20:03Z"
+                },
+                "qr_code_image": {
+                    "description": "Base64 encoded PNG",
+                    "type": "string",
+                    "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                }
+            }
+        },
+        "models.QRConfirmRequest": {
+            "type": "object",
+            "required": [
+                "app_token",
+                "session_id"
+            ],
+            "properties": {
+                "app_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                }
+            }
+        },
+        "models.QRConfirmResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {
+                            "type": "string",
+                            "example": "qr_abc123def456"
+                        },
+                        "status": {
+                            "type": "string",
+                            "example": "confirmed"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "QR scan and login confirmed"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/confirm"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.QRLoginStatusResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Login successful"
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "confirmed"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "models.QRLoginStatusResponseWrapper": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "status": {
+                            "$ref": "#/definitions/models.QRLoginStatusResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Session status retrieved"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "GET"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/status"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.QRRejectRequest": {
+            "type": "object",
+            "required": [
+                "app_token",
+                "session_id"
+            ],
+            "properties": {
+                "app_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "qr_abc123def456"
+                }
+            }
+        },
+        "models.QRRejectResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": {
+                            "type": "string",
+                            "example": "qr_abc123def456"
+                        },
+                        "status": {
+                            "type": "string",
+                            "example": "rejected"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "QR login rejected"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/qr/reject"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.RefreshTokenResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "token": {
+                            "type": "string",
+                            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        },
+                        "user": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Token refreshed successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/refresh"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "user": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "User created successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/register"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.UpdateUserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "user": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "User updated successfully"
+                },
+                "method": {
+                    "type": "string",
+                    "example": "PUT"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/1"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.UserCreateRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Doe"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "password123"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "user"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                }
+            }
+        },
+        "models.UserLoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                }
+            }
+        },
+        "models.UserResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string",
+                    "example": "https://example.com/avatar.jpg"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03.003428Z"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Doe"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "user"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03.003428Z"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                }
+            }
+        },
+        "models.UserUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string",
+                    "example": "https://example.com/avatar.jpg"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Doe"
+                }
+            }
+        },
+        "models.ValidationErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "example": "VALIDATION_FAILED"
+                        },
+                        "details": {
+                            "type": "string",
+                            "example": "Invalid request data format"
+                        },
+                        "message": {
+                            "type": "string",
+                            "example": "Validation failed"
+                        },
+                        "request_id": {
+                            "type": "string",
+                            "example": "59744195-9e8d-4e07-b17e-39dac2ae2b48"
+                        },
+                        "timestamp": {
+                            "type": "string",
+                            "example": "2025-08-27T08:15:03.832523143Z"
+                        }
+                    }
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/users/register"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Enter the token with the `Bearer ` prefix, e.g. \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\""
+        }
+    }
+}

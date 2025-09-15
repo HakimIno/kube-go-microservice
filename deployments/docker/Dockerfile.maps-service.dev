@@ -1,22 +1,29 @@
-# Development Dockerfile for maps-service
-FROM golang:1.23-alpine
-
-# Install necessary packages
-RUN apk add --no-cache git
+# Maps Service Development Dockerfile
+FROM golang:1.25-alpine
 
 WORKDIR /app
 
-# Copy go mod files first for better caching
-COPY go.mod go.sum ./
+# Install git and other dependencies
+RUN apk add --no-cache git ca-certificates tzdata
 
-# Download dependencies
+# Copy go mod and sum files first for better caching
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy only necessary source files
+COPY services/maps/ ./services/maps/
+COPY shared/ ./shared/
+
+# Create non-root user
+RUN adduser -D -s /bin/sh appuser && chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
 EXPOSE 8082
 
-# Run the application directly (for development)
-CMD ["go", "run", "./cmd/maps-service/main.go"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8082/health || exit 1
+
+# Command to run (will be overridden by docker-compose)
+CMD ["go", "run", "./services/maps/cmd"]

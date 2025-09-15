@@ -1,0 +1,584 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a maps service API for location search using HERE API with Redis caching to reduce costs.",
+        "title": "Maps Service API",
+        "contact": {
+            "name": "API Support",
+            "url": "https://github.com/your-username/kube",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8082",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/maps/search": {
+            "post": {
+                "description": "Search for places near a specific location using HERE API with caching to reduce costs",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Search for places using HERE API",
+                "parameters": [
+                    {
+                        "description": "Search parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceSearchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Places found successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/maps/search/query": {
+            "get": {
+                "description": "Search for places using query string with default location (Bangkok)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Search for places by query string",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Latitude",
+                        "name": "lat",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude",
+                        "name": "lng",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code",
+                        "name": "lang",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Places found successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/maps/places/:id": {
+            "get": {
+                "description": "Get detailed information about a specific place",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Get place details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Place ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Place details retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlaceItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid place ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Place not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/maps/favorites": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a place to user's favorites",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Add favorite place",
+                "responses": {
+                    "200": {
+                        "description": "Place added to favorites successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get user's favorite places",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Get favorite places",
+                "responses": {
+                    "200": {
+                        "description": "Favorite places retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/maps/favorites/:id": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a place from user's favorites",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Remove favorite place",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Place ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Place removed from favorites successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/maps/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get user's search history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Get search history",
+                "responses": {
+                    "200": {
+                        "description": "Search history retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Bearer token required or invalid",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Address": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "countryCode": {
+                    "type": "string"
+                },
+                "countryName": {
+                    "type": "string"
+                },
+                "county": {
+                    "type": "string"
+                },
+                "district": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "postalCode": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Category": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "primary": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.Contact": {
+            "type": "object",
+            "properties": {
+                "phone": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "www": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "example": "PLACE_NOT_FOUND"
+                        },
+                        "details": {
+                            "type": "string",
+                            "example": "Place with ID xyz not found"
+                        },
+                        "message": {
+                            "type": "string",
+                            "example": "Place not found"
+                        },
+                        "request_id": {
+                            "type": "string",
+                            "example": "59744195-9e8d-4e07-b17e-39dac2ae2b48"
+                        },
+                        "timestamp": {
+                            "type": "string",
+                            "example": "2025-08-27T08:15:03.832523143Z"
+                        }
+                    }
+                },
+                "method": {
+                    "type": "string",
+                    "example": "GET"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/maps/places/xyz"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        },
+        "models.PlaceItem": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/models.Address"
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Contact"
+                    }
+                },
+                "distance": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "position": {
+                    "$ref": "#/definitions/models.Position"
+                },
+                "resultType": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaceSearchRequest": {
+            "type": "object",
+            "required": [
+                "query"
+            ],
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "example": "th"
+                },
+                "lat": {
+                    "type": "number",
+                    "example": 13.7563
+                },
+                "limit": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "lng": {
+                    "type": "number",
+                    "example": 100.5018
+                },
+                "query": {
+                    "type": "string",
+                    "example": "วัดพระแก้ว กรุงเทพมหานคร"
+                }
+            }
+        },
+        "models.PlaceSearchResponse": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/models.SearchMeta"
+                },
+                "places": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PlaceItem"
+                    }
+                }
+            }
+        },
+        "models.Position": {
+            "type": "object",
+            "properties": {
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.SearchMeta": {
+            "type": "object",
+            "properties": {
+                "fromCache": {
+                    "type": "boolean"
+                },
+                "query": {
+                    "type": "string"
+                },
+                "resultsCount": {
+                    "type": "integer"
+                },
+                "searchTime": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ValidationErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "example": "VALIDATION_FAILED"
+                        },
+                        "details": {
+                            "type": "string",
+                            "example": "Invalid request data format"
+                        },
+                        "message": {
+                            "type": "string",
+                            "example": "Validation failed"
+                        },
+                        "request_id": {
+                            "type": "string",
+                            "example": "59744195-9e8d-4e07-b17e-39dac2ae2b48"
+                        },
+                        "timestamp": {
+                            "type": "string",
+                            "example": "2025-08-27T08:15:03.832523143Z"
+                        }
+                    }
+                },
+                "method": {
+                    "type": "string",
+                    "example": "POST"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "/api/v1/maps/search"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-27T08:15:03Z"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Enter the token with the `Bearer ` prefix, e.g. \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\""
+        }
+    }
+}

@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Generate Service Script
-# Usage: ./scripts/generate-service.sh <service-name> <port>
+# Generate Service Script for New Architecture
+# Usage: ./scripts/generate-service-new.sh <service-name> <port>
 
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <service-name> <port>"
-    echo "Example: $0 video-service 8082"
+    echo "Example: $0 notification-service 8083"
     exit 1
 fi
 
 SERVICE_NAME=$1
 PORT=$2
 SERVICE_DIR="services/$SERVICE_NAME"
-CMD_DIR="cmd/$SERVICE_NAME"
+CMD_DIR="$SERVICE_DIR/cmd"
+INTERNAL_DIR="$SERVICE_DIR/internal"
+CONFIG_DIR="$SERVICE_DIR/config"
+MIGRATIONS_DIR="$SERVICE_DIR/migrations"
 
 # Convert service name to PascalCase for model names
 pascal_case() {
@@ -30,315 +33,32 @@ pascal_case() {
 
 MODEL_NAME=$(pascal_case "$SERVICE_NAME")
 
-echo "Generating service: $SERVICE_NAME on port $PORT"
-echo "Model name: $MODEL_NAME"
+echo "🚀 Generating service: $SERVICE_NAME on port $PORT"
+echo "📁 Model name: $MODEL_NAME"
 
 # Create directories
-mkdir -p "$SERVICE_DIR"
 mkdir -p "$CMD_DIR"
-
-# Create service files
-cat > "$SERVICE_DIR/service.go" << EOF
-package ${SERVICE_NAME//-/_}
-
-import (
-	"time"
-
-	apperrors "kube/pkg/errors"
-	"kube/pkg/models"
-	"kube/pkg/services"
-
-	"gorm.io/gorm"
-)
-
-type Service struct {
-	*services.BaseService
-	// Add your specific dependencies here
-}
-
-func NewService(db *gorm.DB) *Service {
-	return &Service{
-		BaseService: services.NewBaseService(db),
-		// Initialize your specific dependencies
-	}
-}
-
-// Example CRUD methods following user service pattern
-
-func (s *Service) Create${MODEL_NAME}(req *models.${MODEL_NAME}CreateRequest) (*models.${MODEL_NAME}Response, error) {
-	var item *models.${MODEL_NAME}
-
-	err := s.WithTransaction(func(tx *gorm.DB) error {
-		// Check if item already exists (customize based on your needs)
-		var existingItem models.${MODEL_NAME}
-		if err := tx.Where("name = ?", req.Name).First(&existingItem).Error; err == nil {
-			return apperrors.New(apperrors.ErrCodeDuplicateRecord, "Item already exists", "Name already registered")
-		}
-
-		item = &models.${MODEL_NAME}{
-			Name:        req.Name,
-			Description: req.Description,
-			IsActive:    true,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		}
-
-		if err := tx.Create(item).Error; err != nil {
-			return apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Failed to create item", err.Error())
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return s.to${MODEL_NAME}Response(item), nil
-}
-
-func (s *Service) Get${MODEL_NAME}ByID(id uint) (*models.${MODEL_NAME}Response, error) {
-	var item models.${MODEL_NAME}
-	if err := s.GetDB().First(&item, id).Error; err != nil {
-		return nil, apperrors.Wrap(err, apperrors.ErrCodeRecordNotFound, "Item not found", "${MODEL_NAME} with ID "+string(rune(id))+" not found")
-	}
-	return s.to${MODEL_NAME}Response(&item), nil
-}
-
-func (s *Service) Update${MODEL_NAME}(id uint, req *models.${MODEL_NAME}UpdateRequest) (*models.${MODEL_NAME}Response, error) {
-	var item *models.${MODEL_NAME}
-
-	err := s.WithTransaction(func(tx *gorm.DB) error {
-		if err := tx.First(&item, id).Error; err != nil {
-			return apperrors.Wrap(err, apperrors.ErrCodeRecordNotFound, "Item not found", "${MODEL_NAME} with ID "+string(rune(id))+" not found")
-		}
-
-		item.Name = req.Name
-		item.Description = req.Description
-		item.UpdatedAt = time.Now()
-
-		if err := tx.Save(item).Error; err != nil {
-			return apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Failed to update item", err.Error())
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return s.to${MODEL_NAME}Response(item), nil
-}
-
-func (s *Service) Delete${MODEL_NAME}(id uint) error {
-	if err := s.GetDB().Delete(&models.${MODEL_NAME}{}, id).Error; err != nil {
-		return apperrors.Wrap(err, apperrors.ErrCodeDatabaseError, "Failed to delete item", err.Error())
-	}
-	return nil
-}
-
-func (s *Service) to${MODEL_NAME}Response(item *models.${MODEL_NAME}) *models.${MODEL_NAME}Response {
-	return &models.${MODEL_NAME}Response{
-		ID:          item.ID,
-		Name:        item.Name,
-		Description: item.Description,
-		IsActive:    item.IsActive,
-		CreatedAt:   item.CreatedAt,
-		UpdatedAt:   item.UpdatedAt,
-	}
-}
-EOF
-
-# Create handler files
-cat > "$SERVICE_DIR/handler.go" << EOF
-package ${SERVICE_NAME//-/_}
-
-import (
-	"kube/pkg/errors"
-	"kube/pkg/handlers"
-	"kube/pkg/models"
-
-	"github.com/cloudwego/hertz/pkg/app"
-)
-
-type Handler struct {
-	*handlers.BaseHandler
-	service *Service
-}
-
-func NewHandler(service *Service) *Handler {
-	return &Handler{
-		BaseHandler: handlers.NewBaseHandler(),
-		service:     service,
-	}
-}
-
-// Create${MODEL_NAME} godoc
-// @Summary Create a new ${MODEL_NAME}
-// @Description Create a new ${MODEL_NAME} with the provided information
-// @Tags ${MODEL_NAME}
-// @Accept json
-// @Produce json
-// @Param ${MODEL_NAME} body models.${MODEL_NAME}CreateRequest true "${MODEL_NAME} creation data"
-// @Success 201 {object} map[string]interface{} "${MODEL_NAME} created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request data or ${MODEL_NAME} already exists"
-// @Router /api/v1/${SERVICE_NAME//-/_} [post]
-func (h *Handler) Create${MODEL_NAME}(c *app.RequestContext) {
-	var req models.${MODEL_NAME}CreateRequest
-	if err := c.BindJSON(&req); err != nil {
-		h.SendValidationError(c, "Invalid request data format")
-		return
-	}
-
-	item, err := h.service.Create${MODEL_NAME}(&req)
-	if err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	h.SendSuccess(c, 201, item, "${MODEL_NAME} created successfully")
-}
-
-// Get${MODEL_NAME} godoc
-// @Summary Get ${MODEL_NAME} by ID
-// @Description Retrieve ${MODEL_NAME} information by ID
-// @Tags ${MODEL_NAME}
-// @Accept json
-// @Produce json
-// @Param id path int true "${MODEL_NAME} ID"
-// @Success 200 {object} map[string]interface{} "${MODEL_NAME} information"
-// @Failure 400 {object} map[string]interface{} "Invalid ${MODEL_NAME} ID"
-// @Failure 404 {object} map[string]interface{} "${MODEL_NAME} not found"
-// @Router /api/v1/${SERVICE_NAME//-/_}/{id} [get]
-func (h *Handler) Get${MODEL_NAME}(c *app.RequestContext) {
-	id, err := h.GetParamUint(c, "id")
-	if err != nil {
-		h.SendValidationError(c, "Invalid ${MODEL_NAME} ID format")
-		return
-	}
-
-	item, err := h.service.Get${MODEL_NAME}ByID(uint(id))
-	if err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	h.SendSuccess(c, 200, item, "${MODEL_NAME} retrieved successfully")
-}
-
-// Update${MODEL_NAME} godoc
-// @Summary Update ${MODEL_NAME} information
-// @Description Update ${MODEL_NAME} profile information
-// @Tags ${MODEL_NAME}
-// @Accept json
-// @Produce json
-// @Param id path int true "${MODEL_NAME} ID"
-// @Param ${MODEL_NAME} body models.${MODEL_NAME}UpdateRequest true "${MODEL_NAME} update data"
-// @Success 200 {object} map[string]interface{} "${MODEL_NAME} updated successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request data or ${MODEL_NAME} ID"
-// @Failure 404 {object} map[string]interface{} "${MODEL_NAME} not found"
-// @Router /api/v1/${SERVICE_NAME//-/_}/{id} [put]
-func (h *Handler) Update${MODEL_NAME}(c *app.RequestContext) {
-	id, err := h.GetParamUint(c, "id")
-	if err != nil {
-		h.SendValidationError(c, "Invalid ${MODEL_NAME} ID format")
-		return
-	}
-
-	var req models.${MODEL_NAME}UpdateRequest
-	if err := c.BindJSON(&req); err != nil {
-		h.SendValidationError(c, "Invalid request data format")
-		return
-	}
-
-	item, err := h.service.Update${MODEL_NAME}(uint(id), &req)
-	if err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	h.SendSuccess(c, 200, item, "${MODEL_NAME} updated successfully")
-}
-
-// Delete${MODEL_NAME} godoc
-// @Summary Delete ${MODEL_NAME}
-// @Description Delete a ${MODEL_NAME} by ID
-// @Tags ${MODEL_NAME}
-// @Accept json
-// @Produce json
-// @Param id path int true "${MODEL_NAME} ID"
-// @Success 200 {object} map[string]interface{} "${MODEL_NAME} deleted successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid ${MODEL_NAME} ID or deletion failed"
-// @Router /api/v1/${SERVICE_NAME//-/_}/{id} [delete]
-func (h *Handler) Delete${MODEL_NAME}(c *app.RequestContext) {
-	id, err := h.GetParamUint(c, "id")
-	if err != nil {
-		h.SendValidationError(c, "Invalid ${MODEL_NAME} ID format")
-		return
-	}
-
-	if err := h.service.Delete${MODEL_NAME}(uint(id)); err != nil {
-		errors.SendError(c, err)
-		return
-	}
-
-	h.SendSuccess(c, 200, nil, "${MODEL_NAME} deleted successfully")
-}
-EOF
-
-# Create routes files
-cat > "$SERVICE_DIR/routes.go" << EOF
-package ${SERVICE_NAME//-/_}
-
-import (
-	"context"
-
-	"github.com/cloudwego/hertz/pkg/app"
-	"github.com/cloudwego/hertz/pkg/app/server"
-)
-
-func RegisterRoutes(h *server.Hertz, service *Service) {
-	handler := NewHandler(service)
-
-	// API routes with versioning
-	api := h.Group("/api/v1/${SERVICE_NAME//-/_}")
-	{
-		api.POST("", func(ctx context.Context, c *app.RequestContext) {
-			handler.Create${MODEL_NAME}(c)
-		})
-		api.GET("/:id", func(ctx context.Context, c *app.RequestContext) {
-			handler.Get${MODEL_NAME}(c)
-		})
-		api.PUT("/:id", func(ctx context.Context, c *app.RequestContext) {
-			handler.Update${MODEL_NAME}(c)
-		})
-		api.DELETE("/:id", func(ctx context.Context, c *app.RequestContext) {
-			handler.Delete${MODEL_NAME}(c)
-		})
-	}
-}
-EOF
+mkdir -p "$INTERNAL_DIR"/{handler,service,repository,model,router}
+mkdir -p "$CONFIG_DIR"
+mkdir -p "$MIGRATIONS_DIR"
 
 # Create main.go
 cat > "$CMD_DIR/main.go" << EOF
 package main
 
 import (
-	"log"
-
-	_ "kube/docs" // This is generated by swag init
-	"kube/internal/config"
-	"kube/internal/database"
-	"kube/pkg/models"
-	"kube/pkg/server"
-	"kube/services/${SERVICE_NAME}"
+	"kube/services/$SERVICE_NAME/internal/router"
+	"kube/shared/internal/config"
+	"kube/shared/internal/database"
+	"kube/shared/internal/middleware"
+	"kube/services/$SERVICE_NAME/internal/model"
+	"kube/shared/pkg/server"
 	"time"
 )
 
-// @title $SERVICE_NAME API
+// @title $MODEL_NAME Service API
 // @version 1.0
-// @description This is a $SERVICE_NAME service API built with Hertz framework.
+// @description This is a $SERVICE_NAME API built with Hertz framework.
 
 // @contact.name API Support
 // @contact.url https://github.com/your-username/kube
@@ -355,12 +75,11 @@ func main() {
 	cfg := config.Load()
 	db := database.Init(cfg.Database)
 
-	// Auto migrate models (customize based on your needs)
-	if err := db.AutoMigrate(&models.${MODEL_NAME}{}); err != nil {
-		log.Fatal("Failed to migrate database:", err)
+	// Run migrations
+	if err := db.AutoMigrate(&model.$MODEL_NAME{}); err != nil {
+		middleware.LogError("Failed to migrate database", err)
+		panic("Database migration failed")
 	}
-
-	${SERVICE_NAME//-/_}Service := ${SERVICE_NAME//-/_}.NewService(db)
 
 	serverConfig := server.ServerConfig{
 		Port:         "$PORT",
@@ -371,95 +90,479 @@ func main() {
 	}
 
 	srv := server.NewServer(serverConfig)
-	${SERVICE_NAME//-/_}.RegisterRoutes(srv.Hertz, ${SERVICE_NAME//-/_}Service)
+
+	// Register routes
+	router.RegisterRoutes(srv.Hertz, db)
+
 	srv.Start()
 }
 EOF
 
-# Create run script
-cat > "scripts/run-$SERVICE_NAME.sh" << EOF
-#!/bin/bash
-
-# Run $SERVICE_NAME
-cd "\$(dirname "\$0")/.."
-
-echo "Starting $SERVICE_NAME..."
-
-# Set environment variables (customize as needed)
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_USER=postgres
-export DB_PASSWORD=password
-export DB_NAME=video_streaming
-export DB_SSLMODE=disable
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
-export JWT_SECRET=your-secret-key
-export JWT_EXPIRES_IN=24
-
-# Run the service
-go run cmd/$SERVICE_NAME/main.go
-EOF
-
-chmod +x "scripts/run-$SERVICE_NAME.sh"
-
-# Create model files
-MODEL_FILE="pkg/models/${SERVICE_NAME//-/_}.go"
-cat > "$MODEL_FILE" << EOF
-package models
+# Create model
+cat > "$INTERNAL_DIR/model/$SERVICE_NAME.go" << EOF
+package model
 
 import (
 	"time"
+	"gorm.io/gorm"
 )
 
-// ${MODEL_NAME} represents the ${MODEL_NAME} entity
-type ${MODEL_NAME} struct {
-	ID          uint      \`json:"id" gorm:"primaryKey"\`
-	Name        string    \`json:"name" gorm:"not null;unique"\`
-	Description string    \`json:"description"\`
-	IsActive    bool      \`json:"is_active" gorm:"default:true"\`
-	CreatedAt   time.Time \`json:"created_at"\`
-	UpdatedAt   time.Time \`json:"updated_at"\`
+// $MODEL_NAME represents a $SERVICE_NAME in the system
+type $MODEL_NAME struct {
+	ID        string         \`json:"id" gorm:"primaryKey"\`
+	Name      string         \`json:"name" gorm:"not null"\`
+	Status    string         \`json:"status" gorm:"default:'active'"\`
+	CreatedAt time.Time      \`json:"created_at"\`
+	UpdatedAt time.Time      \`json:"updated_at"\`
+	DeletedAt gorm.DeletedAt \`json:"deleted_at" gorm:"index"\`
 }
 
-// ${MODEL_NAME}CreateRequest represents the request payload for creating a ${MODEL_NAME}
+// ${MODEL_NAME}CreateRequest represents the request to create a new $SERVICE_NAME
 type ${MODEL_NAME}CreateRequest struct {
-	Name        string \`json:"name" binding:"required,min=1,max=255"\`
-	Description string \`json:"description" binding:"max=1000"\`
+	Name   string \`json:"name" binding:"required"\`
+	Status string \`json:"status"\`
 }
 
-// ${MODEL_NAME}UpdateRequest represents the request payload for updating a ${MODEL_NAME}
+// ${MODEL_NAME}UpdateRequest represents the request to update a $SERVICE_NAME
 type ${MODEL_NAME}UpdateRequest struct {
-	Name        string \`json:"name" binding:"omitempty,min=1,max=255"\`
-	Description string \`json:"description" binding:"omitempty,max=1000"\`
+	Name   string \`json:"name"\`
+	Status string \`json:"status"\`
 }
 
-// ${MODEL_NAME}Response represents the response payload for ${MODEL_NAME} data
+// ${MODEL_NAME}Response represents the response for $SERVICE_NAME data
 type ${MODEL_NAME}Response struct {
-	ID          uint      \`json:"id"\`
-	Name        string    \`json:"name"\`
-	Description string    \`json:"description"\`
-	IsActive    bool      \`json:"is_active"\`
-	CreatedAt   time.Time \`json:"created_at"\`
-	UpdatedAt   time.Time \`json:"updated_at"\`
+	ID        string    \`json:"id"\`
+	Name      string    \`json:"name"\`
+	Status    string    \`json:"status"\`
+	CreatedAt time.Time \`json:"created_at"\`
+	UpdatedAt time.Time \`json:"updated_at"\`
 }
 EOF
 
-echo "Service $SERVICE_NAME generated successfully!"
-echo "Files created:"
-echo "  - $MODEL_FILE"
-echo "  - $SERVICE_DIR/service.go"
-echo "  - $SERVICE_DIR/handler.go"
-echo "  - $SERVICE_DIR/routes.go"
-echo "  - $CMD_DIR/main.go"
-echo "  - scripts/run-$SERVICE_NAME.sh"
+# Create repository
+cat > "$INTERNAL_DIR/repository/$SERVICE_NAME.go" << EOF
+package repository
+
+import (
+	"kube/services/$SERVICE_NAME/internal/model"
+	"gorm.io/gorm"
+)
+
+type ${MODEL_NAME}Repository struct {
+	db *gorm.DB
+}
+
+func New${MODEL_NAME}Repository(db *gorm.DB) *${MODEL_NAME}Repository {
+	return &${MODEL_NAME}Repository{db: db}
+}
+
+func (r *${MODEL_NAME}Repository) Create($(echo $SERVICE_NAME | tr '-' '_') *model.$MODEL_NAME) error {
+	return r.db.Create($(echo $SERVICE_NAME | tr '-' '_')).Error
+}
+
+func (r *${MODEL_NAME}Repository) GetByID(id string) (*model.$MODEL_NAME, error) {
+	var $(echo $SERVICE_NAME | tr '-' '_') model.$MODEL_NAME
+	err := r.db.Where("id = ?", id).First(&$(echo $SERVICE_NAME | tr '-' '_')).Error
+	return &$(echo $SERVICE_NAME | tr '-' '_'), err
+}
+
+func (r *${MODEL_NAME}Repository) Update($(echo $SERVICE_NAME | tr '-' '_') *model.$MODEL_NAME) error {
+	return r.db.Save($(echo $SERVICE_NAME | tr '-' '_')).Error
+}
+
+func (r *${MODEL_NAME}Repository) Delete(id string) error {
+	return r.db.Where("id = ?", id).Delete(&model.$MODEL_NAME{}).Error
+}
+
+func (r *${MODEL_NAME}Repository) List(limit, offset int) ([]*model.$MODEL_NAME, error) {
+	var $(echo $SERVICE_NAME | tr '-' '_')s []*model.$MODEL_NAME
+	err := r.db.Limit(limit).Offset(offset).Find(&$(echo $SERVICE_NAME | tr '-' '_')s).Error
+	return $(echo $SERVICE_NAME | tr '-' '_')s, err
+}
+EOF
+
+# Create service
+cat > "$INTERNAL_DIR/service/$SERVICE_NAME.go" << EOF
+package service
+
+import (
+	"errors"
+	"kube/services/$SERVICE_NAME/internal/model"
+	"kube/services/$SERVICE_NAME/internal/repository"
+	"kube/shared/pkg/errors"
+	"kube/shared/pkg/services"
+	"gorm.io/gorm"
+)
+
+type ${MODEL_NAME}Service struct {
+	*services.BaseService
+	repo *repository.${MODEL_NAME}Repository
+}
+
+func New${MODEL_NAME}Service(db *gorm.DB) *${MODEL_NAME}Service {
+	return &${MODEL_NAME}Service{
+		BaseService: services.NewBaseService(db),
+		repo:        repository.New${MODEL_NAME}Repository(db),
+	}
+}
+
+func (s *${MODEL_NAME}Service) Create${MODEL_NAME}(req *model.${MODEL_NAME}CreateRequest) (*model.${MODEL_NAME}Response, error) {
+	$(echo $SERVICE_NAME | tr '-' '_') := &model.$MODEL_NAME{
+		Name:   req.Name,
+		Status: req.Status,
+	}
+
+	if $(echo $SERVICE_NAME | tr '-' '_').Status == "" {
+		$(echo $SERVICE_NAME | tr '-' '_').Status = "active"
+	}
+
+	if err := s.repo.Create($(echo $SERVICE_NAME | tr '-' '_')); err != nil {
+		return nil, apperrors.NewInternalServerError("Failed to create $SERVICE_NAME")
+	}
+
+	return s.$(echo $SERVICE_NAME | tr '-' '_')ToResponse($(echo $SERVICE_NAME | tr '-' '_')), nil
+}
+
+func (s *${MODEL_NAME}Service) Get${MODEL_NAME}(id string) (*model.${MODEL_NAME}Response, error) {
+	$(echo $SERVICE_NAME | tr '-' '_'), err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewNotFoundError("$SERVICE_NAME not found")
+		}
+		return nil, apperrors.NewInternalServerError("Failed to get $SERVICE_NAME")
+	}
+
+	return s.$(echo $SERVICE_NAME | tr '-' '_')ToResponse($(echo $SERVICE_NAME | tr '-' '_')), nil
+}
+
+func (s *${MODEL_NAME}Service) Update${MODEL_NAME}(id string, req *model.${MODEL_NAME}UpdateRequest) (*model.${MODEL_NAME}Response, error) {
+	$(echo $SERVICE_NAME | tr '-' '_'), err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewNotFoundError("$SERVICE_NAME not found")
+		}
+		return nil, apperrors.NewInternalServerError("Failed to get $SERVICE_NAME")
+	}
+
+	if req.Name != "" {
+		$(echo $SERVICE_NAME | tr '-' '_').Name = req.Name
+	}
+
+	if req.Status != "" {
+		$(echo $SERVICE_NAME | tr '-' '_').Status = req.Status
+	}
+
+	if err := s.repo.Update($(echo $SERVICE_NAME | tr '-' '_')); err != nil {
+		return nil, apperrors.NewInternalServerError("Failed to update $SERVICE_NAME")
+	}
+
+	return s.$(echo $SERVICE_NAME | tr '-' '_')ToResponse($(echo $SERVICE_NAME | tr '-' '_')), nil
+}
+
+func (s *${MODEL_NAME}Service) Delete${MODEL_NAME}(id string) error {
+	$(echo $SERVICE_NAME | tr '-' '_'), err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperrors.NewNotFoundError("$SERVICE_NAME not found")
+		}
+		return apperrors.NewInternalServerError("Failed to get $SERVICE_NAME")
+	}
+
+	if err := s.repo.Delete(id); err != nil {
+		return apperrors.NewInternalServerError("Failed to delete $SERVICE_NAME")
+	}
+
+	return nil
+}
+
+func (s *${MODEL_NAME}Service) List${MODEL_NAME}s(limit, offset int) ([]*model.${MODEL_NAME}Response, error) {
+	$(echo $SERVICE_NAME | tr '-' '_')s, err := s.repo.List(limit, offset)
+	if err != nil {
+		return nil, apperrors.NewInternalServerError("Failed to list $SERVICE_NAMEs")
+	}
+
+	var responses []*model.${MODEL_NAME}Response
+	for _, $(echo $SERVICE_NAME | tr '-' '_') := range $(echo $SERVICE_NAME | tr '-' '_')s {
+		responses = append(reses, s.$(echo $SERVICE_NAME | tr '-' '_')ToResponse($(echo $SERVICE_NAME | tr '-' '_')))
+	}
+
+	return responses, nil
+}
+
+func (s *${MODEL_NAME}Service) $(echo $SERVICE_NAME | tr '-' '_')ToResponse($(echo $SERVICE_NAME | tr '-' '_') *model.$MODEL_NAME) *model.${MODEL_NAME}Response {
+	return &model.${MODEL_NAME}Response{
+		ID:        $(echo $SERVICE_NAME | tr '-' '_').ID,
+		Name:      $(echo $SERVICE_NAME | tr '-' '_').Name,
+		Status:    $(echo $SERVICE_NAME | tr '-' '_').Status,
+		CreatedAt: $(echo $SERVICE_NAME | tr '-' '_').CreatedAt,
+		UpdatedAt: $(echo $SERVICE_NAME | tr '-' '_').UpdatedAt,
+	}
+}
+EOF
+
+# Create handler
+cat > "$INTERNAL_DIR/handler/$SERVICE_NAME.go" << EOF
+package handler
+
+import (
+	"strconv"
+	"kube/services/$SERVICE_NAME/internal/model"
+	"kube/services/$SERVICE_NAME/internal/service"
+	"kube/shared/pkg/errors"
+	"github.com/cloudwego/hertz/pkg/app"
+)
+
+type ${MODEL_NAME}Handler struct {
+	service *service.${MODEL_NAME}Service
+}
+
+func New${MODEL_NAME}Handler(service *service.${MODEL_NAME}Service) *${MODEL_NAME}Handler {
+	return &${MODEL_NAME}Handler{service: service}
+}
+
+func (h *${MODEL_NAME}Handler) Create${MODEL_NAME}(ctx context.Context, c *app.RequestContext) {
+	var req model.${MODEL_NAME}CreateRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		apperrors.HandleError(c, apperrors.NewBadRequestError("Invalid request data"))
+		return
+	}
+
+	$(echo $SERVICE_NAME | tr '-' '_'), err := h.service.Create${MODEL_NAME}(&req)
+	if err != nil {
+		apperrors.HandleError(c, err)
+		return
+	}
+
+	c.JSON(201, map[string]interface{}{
+		"success": true,
+		"data":    $(echo $SERVICE_NAME | tr '-' '_'),
+		"message": "$SERVICE_NAME created successfully",
+	})
+}
+
+func (h *${MODEL_NAME}Handler) Get${MODEL_NAME}(ctx context.Context, c *app.RequestContext) {
+	id := c.Param("id")
+	if id == "" {
+		apperrors.HandleError(c, apperrors.NewBadRequestError("ID is required"))
+		return
+	}
+
+	$(echo $SERVICE_NAME | tr '-' '_'), err := h.service.Get${MODEL_NAME}(id)
+	if err != nil {
+		apperrors.HandleError(c, err)
+		return
+	}
+
+	c.JSON(200, map[string]interface{}{
+		"success": true,
+		"data":    $(echo $SERVICE_NAME | tr '-' '_'),
+	})
+}
+
+func (h *${MODEL_NAME}Handler) Update${MODEL_NAME}(ctx context.Context, c *app.RequestContext) {
+	id := c.Param("id")
+	if id == "" {
+		apperrors.HandleError(c, apperrors.NewBadRequestError("ID is required"))
+		return
+	}
+
+	var req model.${MODEL_NAME}UpdateRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		apperrors.HandleError(c, apperrors.NewBadRequestError("Invalid request data"))
+		return
+	}
+
+	$(echo $SERVICE_NAME | tr '-' '_'), err := h.service.Update${MODEL_NAME}(id, &req)
+	if err != nil {
+		apperrors.HandleError(c, err)
+		return
+	}
+
+	c.JSON(200, map[string]interface{}{
+		"success": true,
+		"data":    $(echo $SERVICE_NAME | tr '-' '_'),
+		"message": "$SERVICE_NAME updated successfully",
+	})
+}
+
+func (h *${MODEL_NAME}Handler) Delete${MODEL_NAME}(ctx context.Context, c *app.RequestContext) {
+	id := c.Param("id")
+	if id == "" {
+		apperrors.HandleError(c, apperrors.NewBadRequestError("ID is required"))
+		return
+	}
+
+	err := h.service.Delete${MODEL_NAME}(id)
+	if err != nil {
+		apperrors.HandleError(c, err)
+		return
+	}
+
+	c.JSON(200, map[string]interface{}{
+		"success": true,
+		"message": "$SERVICE_NAME deleted successfully",
+	})
+}
+
+func (h *${MODEL_NAME}Handler) List${MODEL_NAME}s(ctx context.Context, c *app.RequestContext) {
+	limitStr := c.Query("limit")
+	offsetStr := c.Query("offset")
+
+	limit := 10
+	offset := 0
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	$(echo $SERVICE_NAME | tr '-' '_')s, err := h.service.List${MODEL_NAME}s(limit, offset)
+	if err != nil {
+		apperrors.HandleError(c, err)
+		return
+	}
+
+	c.JSON(200, map[string]interface{}{
+		"success": true,
+		"data":    $(echo $SERVICE_NAME | tr '-' '_')s,
+		"pagination": map[string]interface{}{
+			"limit":  limit,
+			"offset": offset,
+		},
+	})
+}
+EOF
+
+# Create router
+cat > "$INTERNAL_DIR/router/routes.go" << EOF
+package router
+
+import (
+	"kube/services/$SERVICE_NAME/internal/handler"
+	"kube/services/$SERVICE_NAME/internal/service"
+	"github.com/cloudwego/hertz/pkg/app/server"
+	"gorm.io/gorm"
+)
+
+// RegisterRoutes registers all $SERVICE_NAME service routes
+func RegisterRoutes(r *server.Hertz, db *gorm.DB) {
+	// Initialize $SERVICE_NAME service
+	$(echo $SERVICE_NAME | tr '-' '_')Service := service.New${MODEL_NAME}Service(db)
+
+	// Initialize $SERVICE_NAME handler
+	$(echo $SERVICE_NAME | tr '-' '_')Handler := handler.New${MODEL_NAME}Handler($(echo $SERVICE_NAME | tr '-' '_')Service)
+
+	// API v1 group
+	v1 := r.Group("/api/v1")
+
+	// $SERVICE_NAME routes
+	$(echo $SERVICE_NAME | tr '-' '_')s := v1.Group("/$(echo $SERVICE_NAME | tr '-' '_')s")
+	{
+		$(echo $SERVICE_NAME | tr '-' '_')s.POST("/", $(echo $SERVICE_NAME | tr '-' '_')Handler.Create${MODEL_NAME})
+		$(echo $SERVICE_NAME | tr '-' '_')s.GET("/:id", $(echo $SERVICE_NAME | tr '-' '_')Handler.Get${MODEL_NAME})
+		$(echo $SERVICE_NAME | tr '-' '_')s.PUT("/:id", $(echo $SERVICE_NAME | tr '-' '_')Handler.Update${MODEL_NAME})
+		$(echo $SERVICE_NAME | tr '-' '_')s.DELETE("/:id", $(echo $SERVICE_NAME | tr '-' '_')Handler.Delete${MODEL_NAME})
+		$(echo $SERVICE_NAME | tr '-' '_')s.GET("/", $(echo $SERVICE_NAME | tr '-' '_')Handler.List${MODEL_NAME}s)
+	}
+}
+EOF
+
+# Create config
+cat > "$CONFIG_DIR/config.go" << EOF
+package config
+
+import (
+	"kube/shared/internal/config"
+)
+
+type ${MODEL_NAME}Config struct {
+	*config.BaseConfig
+	// Add service-specific configuration here
+}
+
+func Load${MODEL_NAME}Config() *${MODEL_NAME}Config {
+	return &${MODEL_NAME}Config{
+		BaseConfig: config.Load(),
+		// Load service-specific config
+	}
+}
+EOF
+
+# Create migration
+cat > "$MIGRATIONS_DIR/001_create_$(echo $SERVICE_NAME | tr '-' '_')s.sql" << EOF
+-- Migration: Create $(echo $SERVICE_NAME | tr '-' '_')s table
+-- Created: $(date)
+
+CREATE TABLE IF NOT EXISTS $(echo $SERVICE_NAME | tr '-' '_')s (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL
+);
+
+-- Create indexes
+CREATE INDEX idx_$(echo $SERVICE_NAME | tr '-' '_')s_status ON $(echo $SERVICE_NAME | tr '-' '_')s(status);
+CREATE INDEX idx_$(echo $SERVICE_NAME | tr '-' '_')s_deleted_at ON $(echo $SERVICE_NAME | tr '-' '_')s(deleted_at);
+EOF
+
+# Create Dockerfile
+cat > "deployments/docker/Dockerfile.$SERVICE_NAME" << EOF
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the $SERVICE_NAME service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $SERVICE_NAME ./services/$SERVICE_NAME/cmd
+
+# Final stage
+FROM alpine:latest
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# Copy the binary from builder stage
+COPY --from=builder /app/$SERVICE_NAME .
+
+# Copy migrations
+COPY --from=builder /app/services/$SERVICE_NAME/migrations ./migrations
+
+# Expose port
+EXPOSE $PORT
+
+# Command to run
+CMD ["./$SERVICE_NAME"]
+EOF
+
+echo "✅ Service $SERVICE_NAME created successfully!"
+echo "📁 Location: services/$SERVICE_NAME/"
+echo "🌐 Port: $PORT"
+echo "🐳 Dockerfile: deployments/docker/Dockerfile.$SERVICE_NAME"
 echo ""
-echo "To build the service:"
-echo "  ./scripts/build-service.sh $SERVICE_NAME"
+echo "🚀 Next steps:"
+echo "1. Update go.mod if needed"
+echo "2. Add service-specific business logic"
+echo "3. Update docker-compose.yml to include the new service"
+echo "4. Run: go run services/$SERVICE_NAME/cmd/main.go"
 echo ""
-echo "To run the service:"
-echo "  ./scripts/run-$SERVICE_NAME.sh"
-echo ""
-echo "To test the API:"
-echo "  POST http://localhost:$PORT/api/v1/${SERVICE_NAME//-/_}"
-echo "  GET  http://localhost:$PORT/api/v1/${SERVICE_NAME//-/_}/{id}"
+echo "📝 Don't forget to:"
+echo "- Update environment variables"
+echo "- Add service to monitoring"
+echo "- Update API documentation"

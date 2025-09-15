@@ -1,56 +1,114 @@
+version: '3.8'
+
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: kube-postgres
     environment:
-      POSTGRES_DB: video_streaming
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: kube
+      POSTGRES_USER: kube_user
+      POSTGRES_PASSWORD: kube_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - kube-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U kube_user -d kube"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: kube-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - kube-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
+      timeout: 3s
       retries: 5
+      start_period: 30s
 
+  # User Service
   user-service:
     build:
       context: ../..
       dockerfile: deployments/docker/Dockerfile.user-service
+      cache_from:
+        - golang:1.25-alpine
+    container_name: kube-user-service
     ports:
       - "8081:8081"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: password
-      DB_NAME: video_streaming
-      DB_SSLMODE: disable
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: your-secret-key
-      JWT_EXPIRES_IN: 24
+      - DATABASE_URL=postgres://kube_user:kube_password@postgres:5432/kube?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - PORT=8081
+      - SERVICE_NAME=user-service
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
+    networks:
+      - kube-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Maps Service
+  maps-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.maps-service
+      cache_from:
+        - golang:1.25-alpine
+    container_name: kube-maps-service
+    ports:
+      - "8082:8082"
+    environment:
+      - DATABASE_URL=postgres://kube_user:kube_password@postgres:5432/kube?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - HERE_API_KEY=your-here-api-key
+      - PORT=8082
+      - SERVICE_NAME=maps-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kube-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  kube-network:
+    driver: bridge

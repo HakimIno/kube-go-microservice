@@ -94,6 +94,41 @@ podman-dev:
 	@echo "Starting Podman development environment..."
 	./scripts/dev.sh podman
 
+# Hot reload development commands
+dev-start:
+	@echo "🚀 Starting development environment with hot reload..."
+	./scripts/dev.sh start
+
+dev-stop:
+	@echo "🛑 Stopping development environment..."
+	./scripts/dev.sh stop
+
+dev-restart:
+	@echo "🔄 Restarting $(SERVICE)..."
+	./scripts/dev.sh restart $(SERVICE)
+
+dev-logs:
+	@echo "📋 Viewing logs for $(SERVICE)..."
+	./scripts/dev.sh logs $(SERVICE)
+
+# Clean Redis cache
+clean-cache:
+	@echo "🧹 Cleaning Redis cache..."
+	podman exec -it kube-redis-podman-dev redis-cli FLUSHALL
+
+# Local development with hot reload
+dev-local:
+	@echo "🚀 Starting local development with hot reload..."
+	./scripts/dev-local.sh start
+
+dev-local-stop:
+	@echo "🛑 Stopping local development..."
+	./scripts/dev-local.sh stop
+
+dev-local-restart:
+	@echo "🔄 Restarting maps service..."
+	./scripts/dev-local.sh restart
+
 docker-prod:
 	@echo "Starting Docker production environment..."
 	./scripts/prod.sh docker start
